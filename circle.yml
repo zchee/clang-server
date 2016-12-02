@@ -1,0 +1,38 @@
+machine:
+  environment:
+    TERM: xterm-256color
+    GOROOT: "/home/ubuntu/go"
+    PATH: "/home/ubuntu/go/bin:$PATH"
+    GOLANG_VERSION: 1.8beta1
+
+dependencies:
+  cache_directories:
+    - "/home/ubuntu/.go"
+    - "/home/ubuntu/go"
+  pre:
+    - >
+      if [[ ! -e "/home/ubuntu/.go/${GOLANG_VERSION}/bin/go" ]]; then
+        mkdir -p ~/.go
+        curl https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz | tar -xz -C /home/ubuntu/.go
+        mv /home/ubuntu/.go/go /home/ubuntu/.go/${GOLANG_VERSION}
+        rm -f go${GOLANG_VERSION}.linux-amd64.tar.gz
+      fi
+    - >
+      if [[ ! -d "/home/ubuntu/go" ]]; then
+        git clone https://go.googlesource.com/go /home/ubuntu/go
+      else
+        cd /home/ubuntu/go
+        git fetch
+      fi
+    - cd /home/ubuntu/go/src; GOROOT_BOOTSTRAP=~/.go/${GOLANG_VERSION} ./make.bash
+    - go version
+    - go get -u github.com/golang/lint/golint
+
+test:
+  override:
+    - go test -v -race -coverprofile=coverage.txt -covermode=atomic .
+  post:
+    - bash <(curl -s https://codecov.io/bash)
+    - test -z "$(gofmt -e -s -l -w $(find . -not -iwholename '*vendor*' -and -name '*.go' -print) | tee /dev/stderr)"
+    - test -z "$(golint $(go list ./... | grep -v vendor) | tee /dev/stderr)"
+    - go vet $(go list ./... | grep -v vendor)
