@@ -1,0 +1,16 @@
+sudo: false
+
+os:
+  - linux
+  - osx
+
+language: go
+go:
+  - 1.7.3
+  - tip
+
+script:
+  - go test -v -race $(go list ./... | grep -v vendor)
+
+notifications:
+  email: false
