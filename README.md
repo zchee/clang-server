@@ -1,5 +1,7 @@
 # clang-server
 
+[![CircleCI][circleci-badge]][circleci] [![codecov.io][codecov-badge]][codecov] [![godoc.org][godoc-badge]][godoc]
+
 A C/C++ AST index server using libclang over the msgpack-rpc written in Go.
 
 ## Concept
@@ -15,6 +17,12 @@ A C/C++ AST index server using libclang over the msgpack-rpc written in Go.
  * No need `make` for the generating `compile_commands.json`
 
 
+[circleci-badge]: https://img.shields.io/circleci/project/github/zchee/clang-server.svg?style=flat-square
+[circleci]: https://circleci.com/gh/zchee/clang-server
+[codecov-badge]: https://img.shields.io/codecov/c/github/zchee/clang-server.svg?style=flat-square
+[codecov]: https://codecov.io/gh/zchee/clang-server
+[godoc-badge]: https://img.shields.io/badge/godoc-reference-4F73B3.svg?style=flat-square
+[godoc]: https://godoc.org/github.com/zchee/clang-server
 [leveldb]: https://github.com/google/leveldb
 [goleveldb]: https://github.com/syndtr/goleveldb
 [kati]: https://github.com/google/kati
