@@ -28,8 +28,7 @@ dependencies:
     - go get -u github.com/Masterminds/glide
     - go get -u github.com/golang/lint/golint
   override:
-    - go get -t -d -v ./...
-    - go build -v ./...
+    - glide install
 
 test:
   override:
