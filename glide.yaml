@@ -7,3 +7,6 @@ import:
   subpackages:
   - leveldb
 - package: github.com/minio/blake2b-simd
+- package: github.com/google/flatbuffers
+  subpackages:
+  - go
