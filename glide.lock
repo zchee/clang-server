@@ -1,0 +1,33 @@
+hash: f19135c56edc00ec238e9b7afc794f7f067eb26b080c325cc39e2e14d8b336cf
+updated: 2016-12-03T04:26:45.607384815+09:00
+imports:
+- name: github.com/go-clang/v3.9
+  version: bb111820b44fa13db8f6f4bf9d774aab57046740
+  subpackages:
+  - clang
+- name: github.com/golang/snappy
+  version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
+- name: github.com/minio/blake2b-simd
+  version: 3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4
+- name: github.com/pkg/errors
+  version: 839d9e913e063e28dfd0e6c7b7512793e0a48be9
+- name: github.com/syndtr/goleveldb
+  version: 6b4daa5362b502898ddf367c5c11deb9e7a5c727
+  subpackages:
+  - leveldb
+  - leveldb/cache
+  - leveldb/comparer
+  - leveldb/errors
+  - leveldb/filter
+  - leveldb/iterator
+  - leveldb/journal
+  - leveldb/memdb
+  - leveldb/opt
+  - leveldb/storage
+  - leveldb/table
+  - leveldb/util
+- name: golang.org/x/crypto
+  version: 8a549a1948fc5271eb24f36dcb0d3b47dec75a16
+  subpackages:
+  - blake2b
+testImports: []

@@ -1,0 +1,9 @@
+package: github.com/zchee/clang-server
+import:
+- package: github.com/go-clang/v3.9
+- package: github.com/pkg/errors
+- package: github.com/golang/snappy
+- package: github.com/syndtr/goleveldb
+  subpackages:
+  - leveldb
+- package: github.com/minio/blake2b-simd
