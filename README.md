@@ -6,7 +6,7 @@ A C/C++ AST index server using libclang over the msgpack-rpc written in Go.
 
 ## Concept
 
-* Fast indexing of C/C++ AST database onto the NoSQL
+* Fast indexing of C/C++ AST database onto the NoSQL, which serialized by [flatbuffers][flatbuffers]
  * Now using the [leveldb][leveldb] key-value storage
  * Without C bindings using the [syndtr/goleveldb][goleveldb], which is natively implemented leveldb in Go
 * Support cross-platform and multi-architecture AST indexing
@@ -23,6 +23,7 @@ A C/C++ AST index server using libclang over the msgpack-rpc written in Go.
 [codecov]: https://codecov.io/gh/zchee/clang-server
 [godoc-badge]: https://img.shields.io/badge/godoc-reference-4F73B3.svg?style=flat-square
 [godoc]: https://godoc.org/github.com/zchee/clang-server
+[flatbuffers]: https://github.com/google/flatbuffers
 [leveldb]: https://github.com/google/leveldb
 [goleveldb]: https://github.com/syndtr/goleveldb
 [kati]: https://github.com/google/kati
