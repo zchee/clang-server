@@ -4,35 +4,38 @@ machine:
     GOROOT: "/home/ubuntu/go"
     PATH: "/home/ubuntu/go/bin:$PATH"
     GOLANG_VERSION: 1.8beta1
+    COVERAGE_SERVICE: codecov
+    CGO_LDFLAGS: "-L /usr/lib/llvm-3.9/lib"
 
 dependencies:
   cache_directories:
     - "/home/ubuntu/.go"
-    - "/home/ubuntu/go"
   pre:
+    - echo 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.9 main' | sudo tee -a /etc/apt/sources.list
+    - wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
+    - sudo apt-get update; sudo apt-get install clang-3.9 lldb-3.9
+    - sudo ln -s $(llvm-config-3.9 --libdir)/libclang-3.9.so.1 $(llvm-config-3.9 --libdir)/libclang.so
     - >
       if [[ ! -e "/home/ubuntu/.go/${GOLANG_VERSION}/bin/go" ]]; then
+        cd /home/ubuntu
+        curl https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz | tar -xz
         mkdir -p ~/.go
-        curl https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz | tar -xz -C /home/ubuntu/.go
-        mv /home/ubuntu/.go/go /home/ubuntu/.go/${GOLANG_VERSION}
-        rm -f go${GOLANG_VERSION}.linux-amd64.tar.gz
-      fi
-    - >
-      if [[ ! -d "/home/ubuntu/go" ]]; then
-        git clone https://go.googlesource.com/go /home/ubuntu/go
+        cp -rp /home/ubuntu/go /home/ubuntu/.go/${GOLANG_VERSION}
       else
-        cd /home/ubuntu/go
-        git fetch
+        cp -rp /home/ubuntu/.go/${GOLANG_VERSION} ~/go
       fi
-    - cd /home/ubuntu/go/src; GOROOT_BOOTSTRAP=~/.go/${GOLANG_VERSION} ./make.bash
     - go version
+    - go get -u github.com/Masterminds/glide
     - go get -u github.com/golang/lint/golint
+  override:
+    - go get -t -d -v ./...
+    - go build -v ./...
 
 test:
   override:
-    - go test -v -race -coverprofile=coverage.txt -covermode=atomic .
+    - ./scripts/coverrage.bash codecov
   post:
     - bash <(curl -s https://codecov.io/bash)
     - test -z "$(gofmt -e -s -l -w $(find . -not -iwholename '*vendor*' -and -name '*.go' -print) | tee /dev/stderr)"
     - test -z "$(golint $(go list ./... | grep -v vendor) | tee /dev/stderr)"
-    - go vet $(go list ./... | grep -v vendor)
+    - go vet $(glide nv)
