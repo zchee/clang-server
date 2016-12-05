@@ -1,0 +1,44 @@
+// Copyright 2016 The clang-server Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+namespace symbol.internal.symbol;
+
+// ----------------------------------------------------------------------------
+
+/// TranslationUnit translationunit of file.
+table TranslationUnit {
+	File: string (required);
+	Symbols: [Symbol];
+	Lastmodified: long; // time.Time.Unix(): int64
+}
+
+/// Symbol symbol of C/C++ sources.
+table Symbol {
+	// Name name of clang.Cursor.USR.
+	Name: string (id: 0, required, key);
+	/// Definition location of definition.
+	Definition: Location (id: 1);
+	/// Decls locations of declaration.
+	Decls: [Location] (id: 2);
+	/// Callers caller of functions.
+	Callers: [Caller] (id: 3);
+}
+
+/// Location location of cursor.
+table Location {
+	File: string (required);
+	Line: uint;    // clang.SourceLocation.Line: uint32
+	Col: uint = 0; // clang.SourceLocation.Col: uint32
+	Offset: uint;  // clang.SourceLocation.Offset: uint32
+}
+
+/// Caller location of caller function.
+table Caller {
+	Location: Location (required);
+	FuncCall: bool = false;
+}
+
+// ----------------------------------------------------------------------------
+
+root_type TranslationUnit;
