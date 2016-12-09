@@ -1,20 +1,20 @@
-hash: 88f8c66eea6900bb264884ceec091c7044c60872d20ca6fe8ff1610f428f27cf
-updated: 2016-12-05T11:56:53.131172194+09:00
+hash: 0cfc01ba598e093bb9b31dff12cfcb5943ad20fef14d2e3016aff43c50ed673b
+updated: 2016-12-09T11:49:08.079421871+09:00
 imports:
 - name: github.com/go-clang/v3.9
-  version: bb111820b44fa13db8f6f4bf9d774aab57046740
+  version: 672a03cec7596e03cfecaaf8139021eb5a5f1097
   subpackages:
   - clang
 - name: github.com/golang/snappy
   version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
 - name: github.com/google/flatbuffers
-  version: bc2ec7119bd95230c4eb9a730a5439472efe01fa
+  version: 0de4f3f75be54522af19ed6595fb41f2647f8b94
   subpackages:
   - go
 - name: github.com/minio/blake2b-simd
   version: 3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4
 - name: github.com/pkg/errors
-  version: 839d9e913e063e28dfd0e6c7b7512793e0a48be9
+  version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
 - name: github.com/syndtr/goleveldb
   version: 6b4daa5362b502898ddf367c5c11deb9e7a5c727
   subpackages:
@@ -30,8 +30,12 @@ imports:
   - leveldb/storage
   - leveldb/table
   - leveldb/util
-- name: golang.org/x/crypto
-  version: 8a549a1948fc5271eb24f36dcb0d3b47dec75a16
+- name: github.com/uber-go/atomic
+  version: 9e99152552a6ce13fa3b2ce4a9c4fb117cca4506
+- name: github.com/uber-go/zap
+  version: 35cd7966cc81adc0449c91b3f6b1939812be73aa
+- name: golang.org/x/sync
+  version: 450f422ab23cf9881c94e2db30cac0eb1b7cf80c
   subpackages:
-  - blake2b
+  - errgroup
 testImports: []

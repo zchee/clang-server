@@ -11,13 +11,17 @@ import (
 )
 
 func main() {
-	if len(os.Args) <= 1 {
+	os.Exit(cmd(os.Args[1:]))
+}
+
+func cmd(args []string) int {
+	if len(args) == 0 {
 		fmt.Printf("**error: you need to give a directory containing a 'compile_commands.json' file\n")
 
-		os.Exit(1)
+		return 1
 	}
 
-	dir := os.ExpandEnv(os.Args[1])
+	dir := os.ExpandEnv(args[0])
 	fmt.Printf(":: inspecting [%s]...\n", dir)
 
 	fname := filepath.Join(dir, "compile_commands.json")
@@ -25,7 +29,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("**error: could not open file [%s]: %v\n", fname, err)
 
-		os.Exit(1)
+		return 1
 	}
 	f.Close()
 
@@ -68,4 +72,6 @@ func main() {
 		}
 	}
 	fmt.Printf(":: inspecting [%s]... [done]\n", dir)
+
+	return 0
 }

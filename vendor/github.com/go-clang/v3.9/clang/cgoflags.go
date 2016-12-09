@@ -1,5 +1,4 @@
 package clang
 
-// #cgo LDFLAGS: -lclang
-// #cgo CFLAGS: -I.
+// #cgo CFLAGS: -I${SRCDIR}
 import "C"

@@ -1,6 +1,8 @@
 package: github.com/zchee/clang-server
 import:
 - package: github.com/go-clang/v3.9
+  subpackages:
+  - clang
 - package: github.com/pkg/errors
 - package: github.com/golang/snappy
 - package: github.com/syndtr/goleveldb
@@ -10,3 +12,7 @@ import:
 - package: github.com/google/flatbuffers
   subpackages:
   - go
+- package: golang.org/x/sync
+  subpackages:
+  - errgroup
+- package: github.com/uber-go/zap
