@@ -63,7 +63,7 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 				projectRoot: filepath.Join("./testdata", "builddir"),
 			},
 			args: args{
-				filename:  "",
+				filename:  DefaultJSONName,
 				pathRange: nil,
 			},
 			want: filepath.Join("./testdata", "builddir", "build"),
@@ -74,7 +74,7 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 				projectRoot: filepath.Join("./testdata", "root"),
 			},
 			args: args{
-				filename:  "",
+				filename:  DefaultJSONName,
 				pathRange: nil,
 			},
 			want: filepath.Join("./testdata", "root"),
@@ -85,7 +85,7 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 				projectRoot: filepath.Join("./testdata", "parent", "child"),
 			},
 			args: args{
-				filename:  "",
+				filename:  DefaultJSONName,
 				pathRange: nil,
 			},
 			want: filepath.Join("./testdata", "parent"),
@@ -107,7 +107,7 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 				projectRoot: filepath.Join("./testdata", "pathRange"),
 			},
 			args: args{
-				filename:  "",
+				filename:  DefaultJSONName,
 				pathRange: []string{filepath.Join("./testdata", "pathRange", "json")},
 			},
 			want: filepath.Join("./testdata", "pathRange", "json"),
@@ -117,6 +117,7 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 		c := &CompilationDatabase{
 			projectRoot: tt.fields.projectRoot,
 		}
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			if got := c.findFile(tt.args.filename, tt.args.pathRange); got != tt.want {
