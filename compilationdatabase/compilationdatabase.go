@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const DefaultJsonName = "compile_commands.json"
+const DefaultJSONName = "compile_commands.json"
 
 type CompilationDatabase struct {
 	projectRoot string
@@ -55,22 +55,23 @@ func (c *CompilationDatabase) findFile(filename string, pathRange []string) stri
 	return <-pathCh
 }
 
-func (c *CompilationDatabase) Parse(filename string, pathRange ...string) error {
-	if filename == "" {
-		filename = DefaultJsonName
+func (c *CompilationDatabase) Parse(jsonfile string, pathRange ...string) error {
+	if jsonfile == "" {
+		jsonfile = DefaultJSONName
 	}
 
-	dir := c.findFile(filename, pathRange)
+	dir := c.findFile(jsonfile, pathRange)
 	if dir == "" {
-		return errors.Errorf("couldn't find the %s file", filename)
+		return errors.Errorf("couldn't find the %s file", jsonfile)
 	}
 	c.found = true
 
-	err, cd := clang.FromDirectory(dir)
-	if err != clang.CompilationDatabase_NoError {
-		return errors.WithStack(err)
+	cErr, cd := clang.FromDirectory(dir)
+	if cErr != clang.CompilationDatabase_NoError {
+		return errors.WithStack(cErr)
 	}
 	c.cd = cd
+	defer c.cd.Dispose()
 
 	if err := c.parseAllFlags(); err != nil {
 		return errors.WithStack(err)
@@ -88,34 +89,29 @@ func (c *CompilationDatabase) parseAllFlags() error {
 
 	for i := uint32(0); i < ncmds; i++ {
 		cmd := cmds.Command(i)
-		args, err := c.parseFlags(cmd)
-		if err != nil {
-			return errors.WithStack(err)
-		}
+		args := c.parseFlags(cmd)
 		c.flags[cmd.Filename()] = args
 	}
+
 	return nil
 }
 
-func (c *CompilationDatabase) Flags(filename string) ([]string, error) {
+func (c *CompilationDatabase) Flags(filename string) []string {
 	c.flagMu.Lock()
 	defer c.flagMu.Unlock()
 
 	if c.flags[filename] != nil {
-		return c.flags[filename], nil
+		return c.flags[filename]
 	}
 
 	cmds := c.cd.CompileCommands(filename)
-	flags, err := c.parseFlags(cmds.Command(0))
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
+	flags := c.parseFlags(cmds.Command(0))
 	c.flags[filename] = flags
 
-	return flags, nil
+	return flags
 }
 
-func (c *CompilationDatabase) parseFlags(cmd clang.CompileCommand) ([]string, error) {
+func (c *CompilationDatabase) parseFlags(cmd clang.CompileCommand) []string {
 	n := cmd.NumArgs()
 	flags := make([]string, 0, n)
 
@@ -127,36 +123,26 @@ func (c *CompilationDatabase) parseFlags(cmd clang.CompileCommand) ([]string, er
 		case strings.HasPrefix(f, "-D"):
 			flags = append(flags, f)
 		case f == "-I":
-			includeDir, err := c.absDir(cmd.Arg(i+1), cmd.Directory())
-			if err != nil {
-				return nil, errors.WithStack(err)
-			}
+			includeDir := c.absDir(cmd.Arg(i+1), cmd.Directory())
 			flags = append(flags, "-I", includeDir)
 		case strings.HasPrefix(f, "-I"):
-			includeDir, err := c.absDir(strings.Replace(f, "-I", "", 1), cmd.Directory())
-			if err != nil {
-				return nil, errors.WithStack(err)
-			}
+			includeDir := c.absDir(strings.Replace(f, "-I", "", 1), cmd.Directory())
 			flags = append(flags, "-I", includeDir)
 		}
 	}
 
-	return flags, nil
+	return flags
 }
 
-func (c *CompilationDatabase) absDir(includePath, buildDir string) (string, error) {
+func (c *CompilationDatabase) absDir(includePath, buildDir string) string {
 	if filepath.IsAbs(includePath) {
-		return includePath, nil
+		return includePath
 	}
 
 	abs, err := filepath.Abs(includePath)
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to get absolute path: %v", err)
+		return includePath
 	}
 
-	return filepath.Clean(abs), nil
-}
-
-func (c *CompilationDatabase) Dispose() {
-	c.cd.Dispose()
+	return filepath.Clean(abs)
 }
