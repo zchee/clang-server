@@ -1,38 +1,67 @@
 machine:
   environment:
+    # default is vt100
     TERM: xterm-256color
-    GOROOT: "/home/ubuntu/go"
-    PATH: "/home/ubuntu/go/bin:$PATH"
-    GOLANG_VERSION: 1.8beta1
-    COVERAGE_SERVICE: codecov
-    CGO_LDFLAGS: "-L /usr/lib/llvm-3.9/lib"
+    GOPATH: '/home/ubuntu/.go_workspace'
+    GO_IMPORT_PATH: "github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
+    GO_VERSION: 1.8beta1
+    LLVM_VERSION: 3.9
+    CGO_LDFLAGS: "-L /usr/lib/llvm-${LLVM_VERSION}/lib"
+
+
+general:
+  build_dir: ../.go_workspace/src/${GO_IMPORT_PATH}
+
+
+checkout:
+  post:
+    - mkdir -p "${GOPATH}/src/${GO_IMPORT_PATH}"
+    - rsync -azC --delete "${HOME}/${CIRCLE_PROJECT_REPONAME}/" "${GOPATH}/src/${GO_IMPORT_PATH}/"
+
 
 dependencies:
   cache_directories:
-    - "/home/ubuntu/.go"
+    - '/home/ubuntu/.dpkg'
+    - '/home/ubuntu/.go'
+
   pre:
-    - echo 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.9 main' | sudo tee -a /etc/apt/sources.list
-    - wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
-    - sudo apt-get update; sudo apt-get install clang-3.9 lldb-3.9
-    - sudo ln -s $(llvm-config-3.9 --libdir)/libclang-3.9.so.1 $(llvm-config-3.9 --libdir)/libclang.so
+    # Cache the LLVM apt packages
     - >
-      if [[ ! -e "/home/ubuntu/.go/${GOLANG_VERSION}/bin/go" ]]; then
-        cd /home/ubuntu
-        curl https://storage.googleapis.com/golang/go${GOLANG_VERSION}.linux-amd64.tar.gz | tar -xz
-        mkdir -p ~/.go
-        cp -rp /home/ubuntu/go /home/ubuntu/.go/${GOLANG_VERSION}
-      else
-        cp -rp /home/ubuntu/.go/${GOLANG_VERSION} ~/go
+      if [[ ! -d '/home/ubuntu/.dpkg' ]]; then
+        mkdir -p '/home/ubuntu/.dpkg'; cd '/home/ubuntu/.dpkg'
+        echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-${LLVM_VERSION} main" | sudo tee -a /etc/apt/sources.list
+        wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo apt-get update
+        sudo apt-get -o dir::cache::archives="/home/ubuntu/.dpkg" -d --no-install-recommends install clang-${LLVM_VERSION} lldb-${LLVM_VERSION}
       fi
+    - sudo dpkg -i $(find /home/ubuntu/.dpkg -type f -name '*.deb')
+    - sudo ln -s "$(llvm-config-${LLVM_VERSION} --libdir)/libclang-${LLVM_VERSION}.so.1" "$(llvm-config-${LLVM_VERSION} --libdir)/libclang.so"
+    # Setup and cache the go latest version instead of pre-install
+    - >
+      sudo rm -rf /usr/local/go;
+      if [[ ! -e "/home/ubuntu/.go/${GO_VERSION}/bin/go" ]]; then
+        curl https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz | sudo tar -xz -C /usr/local
+        mkdir -p /home/ubuntu/.go
+        sudo cp -rp /usr/local/go "/home/ubuntu/.go/${GO_VERSION}"
+        sudo chown -R ${CIRCLECI_USER}:${CIRCLECI_USER} /usr/local/go
+      else
+        sudo cp -rp "/home/ubuntu/.go/${GO_VERSION}" /usr/local/go
+      fi;
+      sudo chown -R ${CIRCLECI_USER}:${CIRCLECI_USER} /usr/local/go
     - go version
+
+  override:
     - go get -u github.com/Masterminds/glide
     - go get -u github.com/golang/lint/golint
-  override:
+
+  post:
     - glide install
+
 
 test:
   override:
     - ./scripts/coverrage.bash codecov
+
   post:
     - bash <(curl -s https://codecov.io/bash)
     - test -z "$(gofmt -e -s -l -w $(find . -not -iwholename '*vendor*' -and -name '*.go' -print) | tee /dev/stderr)"
