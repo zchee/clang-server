@@ -12,10 +12,14 @@ import (
 
 	"github.com/go-clang/v3.9/clang"
 	"github.com/pkg/errors"
+	"github.com/uber-go/zap"
+	"github.com/zchee/clang-server/log"
 )
 
+// DefaultJSONName default of compile_commands.json filename.
 const DefaultJSONName = "compile_commands.json"
 
+// CompilationDatabase represents a compilation database.
 type CompilationDatabase struct {
 	projectRoot string
 
@@ -26,6 +30,7 @@ type CompilationDatabase struct {
 	flagMu sync.Mutex
 }
 
+// NewCompilationDatabase return the new CompilationDatabase struct.
 func NewCompilationDatabase(root string) *CompilationDatabase {
 	return &CompilationDatabase{
 		projectRoot: root,
@@ -33,6 +38,7 @@ func NewCompilationDatabase(root string) *CompilationDatabase {
 	}
 }
 
+// findFile finds the filename on pathRange recursively.
 func (c *CompilationDatabase) findFile(filename string, pathRange []string) string {
 	if pathRange == nil {
 		parent := filepath.Dir(c.projectRoot)
@@ -43,10 +49,9 @@ func (c *CompilationDatabase) findFile(filename string, pathRange []string) stri
 	pathCh := make(chan string, len(pathRange))
 	for _, d := range pathRange {
 		go func(d string) {
-			// log.Printf("d: %+v\n", d)
 			_, err := os.Stat(filepath.Join(d, filename))
 			if !os.IsNotExist(err) {
-				// log.Printf("found: %+v\n", file)
+				log.Debug("found", zap.String("filepath", filepath.Join(d, filename)))
 				pathCh <- d
 			}
 		}(d)
@@ -55,6 +60,8 @@ func (c *CompilationDatabase) findFile(filename string, pathRange []string) stri
 	return <-pathCh
 }
 
+// Parse parses the project root directory recursively, and cache the compile
+// flags to flags map.
 func (c *CompilationDatabase) Parse(jsonfile string, pathRange ...string) error {
 	if jsonfile == "" {
 		jsonfile = DefaultJSONName
@@ -80,6 +87,7 @@ func (c *CompilationDatabase) Parse(jsonfile string, pathRange ...string) error 
 	return nil
 }
 
+// parseAllFlags parses the all of project files compile flag.
 func (c *CompilationDatabase) parseAllFlags() error {
 	c.flagMu.Lock()
 	defer c.flagMu.Unlock()
@@ -96,6 +104,7 @@ func (c *CompilationDatabase) parseAllFlags() error {
 	return nil
 }
 
+// Flags return the compile flags by filename.
 func (c *CompilationDatabase) Flags(filename string) []string {
 	c.flagMu.Lock()
 	defer c.flagMu.Unlock()
@@ -111,6 +120,7 @@ func (c *CompilationDatabase) Flags(filename string) []string {
 	return flags
 }
 
+// parseFlags parses the compile flag from cmd.
 func (c *CompilationDatabase) parseFlags(cmd clang.CompileCommand) []string {
 	n := cmd.NumArgs()
 	flags := make([]string, 0, n)
@@ -134,6 +144,7 @@ func (c *CompilationDatabase) parseFlags(cmd clang.CompileCommand) []string {
 	return flags
 }
 
+// absDir return the absolube directory path based by buildDir.
 func (c *CompilationDatabase) absDir(includePath, buildDir string) string {
 	if filepath.IsAbs(includePath) {
 		return includePath
