@@ -19,8 +19,6 @@ func init() {
 		),
 		zap.AddCaller(),
 		// zap.AddStacks(zap.InfoLevel),
-		// zap.Fields(zap.Int("pid", os.Getpid()),
-		// zap.String("exe", filepath.Base(os.Args[0]))),
 	)
 }
 
