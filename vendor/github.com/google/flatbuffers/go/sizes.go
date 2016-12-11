@@ -1,6 +1,8 @@
 package flatbuffers
 
-import "unsafe"
+import (
+        "unsafe"
+)
 
 const (
 	// See http://golang.org/ref/spec#Numeric_types

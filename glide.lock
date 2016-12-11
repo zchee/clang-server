@@ -1,5 +1,5 @@
 hash: 0cfc01ba598e093bb9b31dff12cfcb5943ad20fef14d2e3016aff43c50ed673b
-updated: 2016-12-09T11:49:08.079421871+09:00
+updated: 2016-12-11T17:03:44.139463717+09:00
 imports:
 - name: github.com/go-clang/v3.9
   version: 672a03cec7596e03cfecaaf8139021eb5a5f1097
@@ -8,7 +8,7 @@ imports:
 - name: github.com/golang/snappy
   version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
 - name: github.com/google/flatbuffers
-  version: 0de4f3f75be54522af19ed6595fb41f2647f8b94
+  version: 059661b9ac8bf9998f16a9b1fcd5eb9b6fbc375f
   subpackages:
   - go
 - name: github.com/minio/blake2b-simd
