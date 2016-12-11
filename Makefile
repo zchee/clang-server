@@ -41,6 +41,9 @@ vet:
 fbs:
 	flatc --go $(shell find ./ -type f -name '*.fbs')
 
+clang-format:
+	clang-format -i -sort-includes $(shell find testdata -type f -name '*.c' -or -name '*.cpp')
+
 vendor/install:
 	go install -v -x $(GO_BUILD_TAGS) $(shell glide list 2> /dev/null  | awk 'NR > 1{print $$1}' | sed s'/^/.\/vendor\//g')
 	go install -v -x -race $(GO_BUILD_TAGS) $(shell glide list 2> /dev/null  | awk 'NR > 1{print $$1}' | sed s'/^/.\/vendor\//g')
