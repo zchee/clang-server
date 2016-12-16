@@ -1,10 +1,15 @@
 package: github.com/zchee/clang-server
+homepage: https://zchee.github.io/clang-server
+license: BSD-3-Clause
+owners:
+- name: Koichi Shiraishi
+  email: zchee.io@gmail.com
+  homepage: https://zchee.io
 import:
 - package: github.com/go-clang/v3.9
   subpackages:
   - clang
 - package: github.com/pkg/errors
-- package: github.com/golang/snappy
 - package: github.com/syndtr/goleveldb
   subpackages:
   - leveldb
@@ -12,7 +17,8 @@ import:
 - package: github.com/google/flatbuffers
   subpackages:
   - go
-- package: golang.org/x/sync
-  subpackages:
-  - errgroup
 - package: github.com/uber-go/zap
+- package: github.com/davecgh/go-spew
+  subpackages:
+  - spew
+- package: github.com/boltdb/bolt

@@ -1,6 +1,12 @@
-hash: 0cfc01ba598e093bb9b31dff12cfcb5943ad20fef14d2e3016aff43c50ed673b
-updated: 2016-12-11T17:03:44.139463717+09:00
+hash: 6305b349d659ad801f3f525d823f491370f002e7106e53101e325688342e4443
+updated: 2016-12-17T02:36:13.01592474+09:00
 imports:
+- name: github.com/boltdb/bolt
+  version: 0d9f544bb94aac29c185968483459ef74d6deb5d
+- name: github.com/davecgh/go-spew
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
+  subpackages:
+  - spew
 - name: github.com/go-clang/v3.9
   version: 672a03cec7596e03cfecaaf8139021eb5a5f1097
   subpackages:
@@ -8,7 +14,7 @@ imports:
 - name: github.com/golang/snappy
   version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
 - name: github.com/google/flatbuffers
-  version: 059661b9ac8bf9998f16a9b1fcd5eb9b6fbc375f
+  version: 6d6271db2f8c4a5b6f0ff82506da0b5252f0e3ca
   subpackages:
   - go
 - name: github.com/minio/blake2b-simd
@@ -31,11 +37,7 @@ imports:
   - leveldb/table
   - leveldb/util
 - name: github.com/uber-go/atomic
-  version: 9e99152552a6ce13fa3b2ce4a9c4fb117cca4506
+  version: 3b8db5e93c4c02efbc313e17b2e796b0914a01fb
 - name: github.com/uber-go/zap
-  version: 35cd7966cc81adc0449c91b3f6b1939812be73aa
-- name: golang.org/x/sync
-  version: 450f422ab23cf9881c94e2db30cac0eb1b7cf80c
-  subpackages:
-  - errgroup
+  version: 05dadc4e239529c50d6f730c17f0a3aaf35b64fd
 testImports: []
