@@ -22,3 +22,6 @@ import:
   subpackages:
   - spew
 - package: github.com/boltdb/bolt
+- package: github.com/tinylib/msgp
+  subpackages:
+  - msgp

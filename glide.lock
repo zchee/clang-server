@@ -1,5 +1,5 @@
-hash: 6305b349d659ad801f3f525d823f491370f002e7106e53101e325688342e4443
-updated: 2016-12-19T19:47:46.223778809+09:00
+hash: ca98c1dd9e43095cd0fff62076cf4dedb133a0bd748a731579ee268a2473e623
+updated: 2016-12-19T22:06:17.417432103+09:00
 imports:
 - name: github.com/boltdb/bolt
   version: 0d9f544bb94aac29c185968483459ef74d6deb5d
@@ -40,6 +40,10 @@ imports:
   - leveldb/storage
   - leveldb/table
   - leveldb/util
+- name: github.com/tinylib/msgp
+  version: b433144bef5f20ebd771c0872945f6707ed3f178
+  subpackages:
+  - msgp
 - name: github.com/uber-go/atomic
   version: 3b8db5e93c4c02efbc313e17b2e796b0914a01fb
 - name: github.com/uber-go/zap
