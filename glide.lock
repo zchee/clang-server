@@ -1,5 +1,5 @@
 hash: 6305b349d659ad801f3f525d823f491370f002e7106e53101e325688342e4443
-updated: 2016-12-17T02:36:13.01592474+09:00
+updated: 2016-12-19T19:47:46.223778809+09:00
 imports:
 - name: github.com/boltdb/bolt
   version: 0d9f544bb94aac29c185968483459ef74d6deb5d
@@ -11,6 +11,10 @@ imports:
   version: 672a03cec7596e03cfecaaf8139021eb5a5f1097
   subpackages:
   - clang
+- name: github.com/golang/protobuf
+  version: 8ee79997227bf9b34611aee7946ae64735e6fd93
+  subpackages:
+  - proto
 - name: github.com/golang/snappy
   version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
 - name: github.com/google/flatbuffers
@@ -40,4 +44,27 @@ imports:
   version: 3b8db5e93c4c02efbc313e17b2e796b0914a01fb
 - name: github.com/uber-go/zap
   version: 05dadc4e239529c50d6f730c17f0a3aaf35b64fd
+- name: golang.org/x/net
+  version: 45e771701b814666a7eb299e6c7a57d0b1799e91
+  subpackages:
+  - context
+  - http2
+  - http2/hpack
+  - idna
+  - internal/timeseries
+  - lex/httplex
+  - trace
+- name: google.golang.org/grpc
+  version: 8712952b7d646dbbbc6fb73a782174f3115060f3
+  subpackages:
+  - codes
+  - credentials
+  - grpclog
+  - internal
+  - metadata
+  - naming
+  - peer
+  - stats
+  - tap
+  - transport
 testImports: []
