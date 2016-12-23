@@ -1,12 +1,80 @@
-GO_GCFLAGS ?= 
-GO_LDFLAGS ?=
-CGO_LDFLAGS ?= -L$(shell llvm-config --libdir)
-# CGO_LDFLAGS += $(foreach lib,libclang.a libclangAST.a libclangAnalysis.a libclangBasic.a libclangDriver.a libclangEdit.a libclangFrontend.a libclangIndex.a libclangLex.a libclangParse.a libclangRewrite.a libclangSema.a libclangSerialization.a,$(shell llvm-config --libdir)/$(lib))
-# CGO_LDFLAGS += $(shell find ~/src/llvm.org/build/lib -type f -name '*.a' | grep -v -e unwind -e lldb -e libc++)
-# CGO_LDFLAGS += /usr/local/opt/zlib/lib/libz.a /usr/local/opt/ncurses/lib/libncursesw.a
+GIT_REVISION := $(shell git rev-parse --short HEAD)
 
-# GO_BUILD_TAGS ?= -tags 'unsafe static'
-GO_BUILD_FLAGS := $(GO_BUILD_TAGS)
+LLVM_LIBDIR := $(shell llvm-config --libdir)
+LLVM_LIBS := \
+	libLLVMAnalysis \
+	libLLVMAsmParser \
+	libLLVMAsmPrinter \
+	libLLVMBitReader \
+	libLLVMBitWriter \
+	libLLVMCodeGen \
+	libLLVMCore \
+	libLLVMCoroutines \
+	libLLVMCoverage \
+	libLLVMDebugInfoCodeView \
+	libLLVMDebugInfoDWARF \
+	libLLVMDebugInfoMSF \
+	libLLVMDebugInfoPDB \
+	libLLVMDemangle \
+	libLLVMExecutionEngine \
+	libLLVMGlobalISel \
+	libLLVMIRReader \
+	libLLVMInstCombine \
+	libLLVMInstrumentation \
+	libLLVMInterpreter \
+	libLLVMLTO \
+	libLLVMLibDriver \
+	libLLVMLineEditor \
+	libLLVMLinker \
+	libLLVMMC \
+	libLLVMMCDisassembler \
+	libLLVMMCJIT \
+	libLLVMMCParser \
+	libLLVMMIRParser \
+	libLLVMObjCARCOpts \
+	libLLVMObject \
+	libLLVMObjectYAML \
+	libLLVMOption \
+	libLLVMOrcJIT \
+	libLLVMPasses \
+	libLLVMProfileData \
+	libLLVMRuntimeDyld \
+	libLLVMScalarOpts \
+	libLLVMSelectionDAG \
+	libLLVMSupport \
+	libLLVMSymbolize \
+	libLLVMTableGen \
+	libLLVMTarget \
+	libLLVMTransformUtils \
+	libLLVMVectorize \
+	libLLVMX86AsmParser \
+	libLLVMX86AsmPrinter \
+	libLLVMX86CodeGen \
+	libLLVMX86Desc \
+	libLLVMX86Disassembler \
+	libLLVMX86Info \
+	libLLVMX86Utils \
+	libLLVMipo \
+	libclang \
+	libclangAST \
+	libclangAnalysis \
+	libclangBasic \
+	libclangDriver \
+	libclangEdit \
+	libclangFrontend \
+	libclangIndex \
+	libclangLex \
+	libclangParse \
+	libclangRewrite \
+	libclangSema \
+	libclangSerialization
+
+GO_GCFLAGS ?= 
+GO_LDFLAGS := -X "main.Revision=$(GIT_REVISION)"
+CGO_CFLAGS ?=
+CGO_LDFLAGS ?= -L$(LLVM_LIBDIR)
+
+GO_BUILD_FLAGS ?=
 GO_TEST_FLAGS := 
 
 PACKAGES := $(shell glide novendor)
@@ -14,67 +82,73 @@ PACKAGES := $(shell glide novendor)
 
 ifneq ($(CLANG_SERVER_DEBUG),)
 GO_GCFLAGS += -N -l
-GO_BUILD_FLAGS += -v -x -race
+CGO_CFLAGS += -g -O0
+GO_BUILD_FLAGS += -v -x
 GO_TEST_FLAGS += -v -race
 else
 GO_LDFLAGS += -w -s
+CGO_CFLAGS += -O3
+endif
+
+ifneq ($(STATIC),)
+GO_LDFLAGS += -extldflags "-static"
+CGO_LDFLAGS ?= -L/usr/lib -lc++
+CGO_LDFLAGS += $(foreach lib,$(LLVM_LIBS),$(LLVM_LIBDIR)/$(lib).a)
+# CGO_LDFLAGS += $(shell find ~/src/llvm.org/build/lib -type f -name '*.a' | grep -v -e unwind -e lldb -e libc++)
+CGO_LDFLAGS += /usr/local/opt/zlib/lib/libz.a /usr/local/opt/ncurses/lib/libncursesw.a
+GO_BUILD_FLAGS += unsafe static
+endif
+
+ifneq ($(shell command -v ccache-clang 2> /dev/null),)
+CC := ccache-clang
+endif
+ifneq ($(shell command -v ccache-clang++ 2> /dev/null),)
+CXX := ccache-clang++
 endif
 
 
 default: build
 
 build:
-	go build -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) $(PACKAGES)
+	go build -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' -tags netgo -installsuffix netgo $(GO_BUILD_FLAGS) $(PACKAGES)
+
+install:
+	go install -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)'
 
 run:
-	go run ./cmd/clang-server/main.go
+	go run ./main.go
 
 test:
 	go test $(GO_TEST_FLAGS) $(PACKAGES)
 
 lint:
-	for pkg in $(shell go list ./... | grep -v vendor | sed 's/github.com\/zchee\/clang-server/\./g'); do golint $$pkg; done
+	@for pkg in $(shell go list ./... | grep -v -e vendor -e symbol/internal | sed 's/github.com\/zchee\/clang-server/\./g'); do golint $$pkg; done
 
 vet:
 	go vet -v -race $(PACKAGES)
 
+glide:
+ifeq ($(shell command -v glide 2> /dev/null),)
+	go get -v github.com/Masterminds/glide
+endif
+
+vendor/restore: glide
+	glide install
+
+vendor/install: glide
+	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go install -v -x -tags '$(GO_BUILD_TAGS)' $(shell glide list 2> /dev/null  | awk 'NR > 1{print $$1}' | sed s'/^/.\/vendor\//g')
+	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go install -v -x -race -tags '$(GO_BUILD_TAGS)' $(shell glide list 2> /dev/null  | awk 'NR > 1{print $$1}' | sed s'/^/.\/vendor\//g')
+
+vendor/update: glide
+	glide cache-clear
+	glide update
+
 fbs:
-	flatc --go $(shell find ./ -type f -name '*.fbs')
+	${RM} -r ./symbol/internal/symbol
+	flatc --go --grpc $(shell find ./symbol -type f -name '*.fbs')
 
 clang-format:
 	clang-format -i -sort-includes $(shell find testdata -type f -name '*.c' -or -name '*.cpp')
-
-vendor/install:
-	go install -v -x $(GO_BUILD_TAGS) $(shell glide list 2> /dev/null  | awk 'NR > 1{print $$1}' | sed s'/^/.\/vendor\//g')
-	go install -v -x -race $(GO_BUILD_TAGS) $(shell glide list 2> /dev/null  | awk 'NR > 1{print $$1}' | sed s'/^/.\/vendor\//g')
-
-vendor/clean:
-	${RM} -r \
-		./vendor/github.com/google/flatbuffers/.gitattributes \
-		./vendor/github.com/google/flatbuffers/.gitignore \
-		./vendor/github.com/google/flatbuffers/.travis.yml \
-		./vendor/github.com/google/flatbuffers/android \
-		./vendor/github.com/google/flatbuffers/appveyor.yml \
-		./vendor/github.com/google/flatbuffers/biicode \
-		./vendor/github.com/google/flatbuffers/biicode.conf \
-		./vendor/github.com/google/flatbuffers/CMake \
-		./vendor/github.com/google/flatbuffers/CMakeLists.txt \
-		./vendor/github.com/google/flatbuffers/CMakeLists.txt \
-		./vendor/github.com/google/flatbuffers/composer.json \
-		./vendor/github.com/google/flatbuffers/docs \
-		./vendor/github.com/google/flatbuffers/grpc \
-		./vendor/github.com/google/flatbuffers/include \
-		./vendor/github.com/google/flatbuffers/ISSUE_TEMPLATE.md \
-		./vendor/github.com/google/flatbuffers/java \
-		./vendor/github.com/google/flatbuffers/js \
-		./vendor/github.com/google/flatbuffers/net \
-		./vendor/github.com/google/flatbuffers/php \
-		./vendor/github.com/google/flatbuffers/pom.xml \
-		./vendor/github.com/google/flatbuffers/python \
-		./vendor/github.com/google/flatbuffers/reflection \
-		./vendor/github.com/google/flatbuffers/samples \
-		./vendor/github.com/google/flatbuffers/src \
-		./vendor/github.com/google/flatbuffers/tests
 
 serve: clean build
 	./clang-server
@@ -82,4 +156,4 @@ serve: clean build
 clean:
 	${RM} clang-server
 
-.PHONY: fbs
+.PHONY: build install run test lint vet glide vendor/restore vendor/install vendor/update vendor/clean fbs clang-format serve clean
