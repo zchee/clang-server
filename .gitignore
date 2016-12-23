@@ -79,3 +79,7 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.cof
+
+# binary
+clang-server
+!cmd/clang-server
