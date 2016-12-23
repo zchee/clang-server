@@ -1,66 +1,60 @@
-machine:
-  environment:
-    # default is vt100
-    TERM: xterm-256color
-    GOPATH: '/home/ubuntu/.go_workspace'
-    GO_IMPORT_PATH: "github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
-    GO_VERSION: 1.8beta1
-    LLVM_VERSION: 3.9
-    CGO_LDFLAGS: "-L /usr/lib/llvm-${LLVM_VERSION}/lib"
+version: 2
+executorType: docker
 
+containerInfo:
+  - image: golang:1.8
 
-general:
-  build_dir: ../.go_workspace/src/${GO_IMPORT_PATH}
-
-
-checkout:
-  post:
-    - mkdir -p "${GOPATH}/src/${GO_IMPORT_PATH}"
-    - rsync -azC --delete "${HOME}/${CIRCLE_PROJECT_REPONAME}/" "${GOPATH}/src/${GO_IMPORT_PATH}/"
-
-
-dependencies:
-  cache_directories:
-    - '/home/ubuntu/.dpkg'
-    - '/home/ubuntu/.go'
-
-  pre:
-    # Cache the LLVM apt packages
-    - >
-      if [[ ! -d '/home/ubuntu/.dpkg' ]]; then
-        mkdir -p '/home/ubuntu/.dpkg'; cd '/home/ubuntu/.dpkg'
-        echo "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-${LLVM_VERSION} main" | sudo tee -a /etc/apt/sources.list
-        wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-        sudo apt-get update
-        sudo apt-get -o dir::cache::archives="/home/ubuntu/.dpkg" -d --no-install-recommends install clang-${LLVM_VERSION} lldb-${LLVM_VERSION}
-      fi
-    - sudo dpkg -i $(find /home/ubuntu/.dpkg -type f -name '*.deb')
-    - sudo ln -s "$(llvm-config-${LLVM_VERSION} --libdir)/libclang-${LLVM_VERSION}.so.1" "$(llvm-config-${LLVM_VERSION} --libdir)/libclang.so"
-    # Setup and cache the go latest version instead of pre-install
-    - >
-      sudo rm -rf /usr/local/go;
-      if [[ ! -e "/home/ubuntu/.go/${GO_VERSION}/bin/go" ]]; then
-        curl https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz | sudo tar -xz -C /usr/local
-        mkdir -p /home/ubuntu/.go
-        sudo cp -rp /usr/local/go "/home/ubuntu/.go/${GO_VERSION}"
-        sudo chown -R ${CIRCLECI_USER}:${CIRCLECI_USER} /usr/local/go
-      else
-        sudo cp -rp "/home/ubuntu/.go/${GO_VERSION}" /usr/local/go
-      fi;
-      sudo chown -R ${CIRCLECI_USER}:${CIRCLECI_USER} /usr/local/go
-    - go version
-
-  override:
-    - go get -u github.com/Masterminds/glide
-    - go get -u github.com/golang/lint/golint
-
-
-test:
-  override:
-    - ./scripts/coverrage.bash codecov
-
-  post:
-    - bash <(curl -s https://codecov.io/bash)
-    - test -z "$(gofmt -e -s -l -w $(find . -not -iwholename '*vendor*' -and -name '*.go' -print) | tee /dev/stderr)"
-    - test -z "$(golint $(go list ./... | grep -v vendor) | tee /dev/stderr)"
-    - go vet $(glide nv)
+stages:
+  build:
+    workDir: /go/src/github.com/zchee/clang-server
+    environment:
+      CIRCLE_PROJECT_USERNAME: zchee
+      CIRCLE_PROJECT_REPONAME: clang-server
+      LLVM_VERSION: 3.9
+    steps:
+      - type: checkout
+      - type: shell
+        name: "Install LLVM toolchain"
+        command: |
+          set -eu
+          echo "deb http://apt.llvm.org/jessie/ llvm-toolchain-jessie-${LLVM_VERSION} main" >> /etc/apt/sources.list
+          wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+          apt-get update
+          apt-get -y --no-install-recommends install "llvm-${LLVM_VERSION}" "clang-${LLVM_VERSION}" "libclang1-${LLVM_VERSION}" "lldb-${LLVM_VERSION}"
+          ln -s /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
+          ln -s /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
+          ln -s "$(llvm-config-${LLVM_VERSION} --libdir)/libclang-${LLVM_VERSION}.so.1" "$(llvm-config-${LLVM_VERSION} --libdir)/libclang.so"
+      - type: shell
+        name: "go test -v -x -race -cover ..."
+        environment:
+          COVER_MODE: atomic
+          COVERAGE_OUT: coverage.tmp.out
+          COVERAGE_RESULT: coverage.out
+          CC: clang
+          CXX: clang++
+          CGO_LDFLAGS: -L/usr/lib/llvm-$LLVM_VERSION/lib
+        command: |
+          set -eu
+          echo "mode: $COVER_MODE" > $COVERAGE_RESULT
+          for pkg in $(go list ./... | grep -v vendor); do
+            go test -v -race -cover -covermode=$COVER_MODE -coverprofile=$COVERAGE_OUT $pkg
+            if [ -f $COVERAGE_OUT ]; then
+              tail -n +2 $COVERAGE_OUT >> $COVERAGE_RESULT
+              rm -f $COVERAGE_OUT
+            fi
+          done
+      - type: shell
+        name: "Uploading reports to codecov.io"
+        command: |
+          set -eu
+          bash <(curl -s https://codecov.io/bash)
+      - type: shell
+        name: "gofmt, golint and go vet"
+        command: |
+          set -eu
+          go get -u github.com/golang/lint/golint
+          test -z "$(gofmt -e -s -l -w $(find . -not -iwholename '*vendor*' -and -name '*.go' -print) | tee /dev/stderr)"
+          for pkg in $(go list ./... | grep -v -e vendor -e internal)
+            do golint -set_exit_status $pkg
+          done
+          go vet $(go list ./... | grep -v vendor)
