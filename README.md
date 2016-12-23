@@ -1,6 +1,6 @@
 # clang-server
 
-[![CircleCI][circleci-badge]][circleci] [![codecov.io][codecov-badge]][codecov] [![godoc.org][godoc-badge]][godoc]
+[![CircleCI][circleci-badge]][circleci] [![codecov.io][codecov-badge]][codecov] [![godoc.org][godoc-badge]][godoc] [![GA][ga-badge]][ga]
 
 A C/C++ AST index server using libclang over the msgpack-rpc written in Go.
 
@@ -23,6 +23,8 @@ A C/C++ AST index server using libclang over the msgpack-rpc written in Go.
 [codecov]: https://codecov.io/gh/zchee/clang-server
 [godoc-badge]: https://img.shields.io/badge/godoc-reference-4F73B3.svg?style=flat-square
 [godoc]: https://godoc.org/github.com/zchee/clang-server
+[ga-badge]: https://ga-beacon.appspot.com/UA-89201129-1/clang-server?flat&useReferer
+[ga]: https://github.com/zchee/clang-server
 [flatbuffers]: https://github.com/google/flatbuffers
 [leveldb]: https://github.com/google/leveldb
 [goleveldb]: https://github.com/syndtr/goleveldb
