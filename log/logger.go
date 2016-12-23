@@ -5,88 +5,98 @@
 package log
 
 import (
-	"context"
+	"fmt"
+	"os"
 
 	"github.com/uber-go/zap"
 )
 
-var logger zap.Logger
+type stdLogger struct {
+	write func(string, ...zap.Field)
+	panic func(string, ...zap.Field)
+	fatal func(string, ...zap.Field)
+	debug func(string, ...zap.Field)
+}
+
+var logger stdLogger
 
 func init() {
-	logger = zap.New(
-		zap.NewTextEncoder(
-			zap.TextNoTime(),
-		),
+	l := zap.New(zap.NewTextEncoder(zap.TextNoTime()))
+	ld := zap.New(zap.NewTextEncoder(zap.TextNoTime()),
 		zap.AddCaller(),
-		// zap.AddStacks(zap.InfoLevel),
 	)
-}
 
-type correlationIdType int
-
-const (
-	requestIdKey correlationIdType = iota
-	sessionIdKey
-)
-
-// WithRqId returns a context which knows its request ID
-func WithRqId(ctx context.Context, rqId string) context.Context {
-	return context.WithValue(ctx, requestIdKey, rqId)
-}
-
-// WithSessionId returns a context which knows its session ID
-func WithSessionId(ctx context.Context, sessionId string) context.Context {
-	return context.WithValue(ctx, sessionIdKey, sessionId)
-}
-
-// Logger returns a zap logger with as much context as possible
-func Logger(ctx context.Context) zap.Logger {
-	newLogger := logger
-	if ctx != nil {
-		if ctxRqId, ok := ctx.Value(requestIdKey).(string); ok {
-			newLogger = newLogger.With(zap.String("rqId", ctxRqId))
-		}
-		if ctxSessionId, ok := ctx.Value(sessionIdKey).(string); ok {
-			newLogger = newLogger.With(zap.String("sessionId", ctxSessionId))
-		}
+	logger = stdLogger{
+		panic: l.Panic,
+		fatal: l.Fatal,
+		write: l.Info,
+		debug: ld.Debug,
 	}
-	return newLogger
+
+	switch os.Getenv("CLANG_SERVER_DEBUG") {
+	case "1":
+		// nothing to do
+	default:
+		ld.With(zap.Skip())
+	}
 }
 
-// Implements zap standard logger methods.
-
-func Check(lvl zap.Level, msg string) *zap.CheckedMessage {
-	return logger.Check(lvl, msg)
+// Print calls Output to print to the standard logger. Arguments are handled in the manner of fmt.Print.
+func Print(args ...interface{}) {
+	logger.write(fmt.Sprint(args...))
 }
 
-func Log(lvl zap.Level, msg string, fields ...zap.Field) {
-	logger.Log(lvl, msg, fields...)
+// Printf calls Output to print to the standard logger. Arguments are handled in the manner of fmt.Printf.
+func Printf(format string, args ...interface{}) {
+	logger.write(fmt.Sprintf(format, args...))
 }
 
-func Debug(msg string, fields ...zap.Field) {
-	logger.Debug(msg, fields...)
+// Println calls Output to print to the standard logger. Arguments are handled in the manner of fmt.Println.
+func Println(args ...interface{}) {
+	logger.write(fmt.Sprint(args...))
 }
 
-func Info(msg string, fields ...zap.Field) {
-	logger.Info(msg, fields...)
+// Panic is equivalent to Print() followed by a call to panic().
+func Panic(args ...interface{}) {
+	logger.panic(fmt.Sprint(args...))
 }
 
-func Warn(msg string, fields ...zap.Field) {
-	logger.Warn(msg, fields...)
+// Panicf is equivalent to Printf() followed by a call to panic().
+func Panicf(format string, args ...interface{}) {
+	logger.panic(fmt.Sprintf(format, args...))
 }
 
-func Error(msg string, fields ...zap.Field) {
-	logger.Error(msg, fields...)
+// Panicln is equivalent to Println() followed by a call to panic().
+func Panicln(args ...interface{}) {
+	logger.panic(fmt.Sprint(args...))
 }
 
-func DPanic(msg string, fields ...zap.Field) {
-	logger.DPanic(msg, fields...)
-}
-func Panic(msg string, fields ...zap.Field) {
-	logger.Panic(msg, fields...)
-	panic(msg)
+// Fatal is equivalent to Print() followed by a call to os.Exit(1).
+func Fatal(args ...interface{}) {
+	logger.fatal(fmt.Sprint(args...))
 }
 
-func Fatal(msg string, fields ...zap.Field) {
-	logger.Fatal(msg, fields...)
+// Fatalf is equivalent to Printf() followed by a call to os.Exit(1).
+func Fatalf(format string, args ...interface{}) {
+	logger.fatal(fmt.Sprintf(format, args...))
+}
+
+// Fatalln is equivalent to Println() followed by a call to os.Exit(1).
+func Fatalln(args ...interface{}) {
+	logger.fatal(fmt.Sprint(args...))
+}
+
+// Debug calls Output to print to the standard logger if set debug level. Arguments are handled in the manner of fmt.Print.
+func Debug(args ...interface{}) {
+	logger.debug(fmt.Sprint(args...))
+}
+
+// Debugf calls Output to print to the standard logger if set debug level. Arguments are handled in the manner of fmt.Printf.
+func Debugf(format string, args ...interface{}) {
+	logger.debug(fmt.Sprint(args...))
+}
+
+// Debugln calls Output to print to the standard logger if set debug level. Arguments are handled in the manner of fmt.Println.
+func Debugln(args ...interface{}) {
+	logger.debug(fmt.Sprint(args...))
 }
