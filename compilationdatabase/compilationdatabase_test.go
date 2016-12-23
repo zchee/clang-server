@@ -26,13 +26,13 @@ func TestNewCompilationDatabase(t *testing.T) {
 			args: args{root: "./testdata"},
 			want: &CompilationDatabase{
 				projectRoot: "./testdata",
-				found:       false,
-				flags:       make(map[string][]string),
 			},
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			if got := NewCompilationDatabase(tt.args.root); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewCompilationDatabase(%v) = %v, want %v", tt.args.root, got, tt.want)
 			}
@@ -114,12 +114,12 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		c := &CompilationDatabase{
-			projectRoot: tt.fields.projectRoot,
-		}
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			c := &CompilationDatabase{
+				projectRoot: tt.fields.projectRoot,
+			}
 			if got := c.findFile(tt.args.filename, tt.args.pathRange); got != tt.want {
 				t.Errorf("CompilationDatabase.findFile(%v, %v) = %v, want %v", tt.args.filename, tt.args.pathRange, got, tt.want)
 			}
