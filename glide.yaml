@@ -25,3 +25,4 @@ import:
 - package: github.com/tinylib/msgp
   subpackages:
   - msgp
+- package: github.com/sirupsen/logrus

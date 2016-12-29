@@ -1,5 +1,5 @@
-hash: ca98c1dd9e43095cd0fff62076cf4dedb133a0bd748a731579ee268a2473e623
-updated: 2016-12-29T14:04:39.661876917+09:00
+hash: f7b2fcd5bb2fbc8123189fecf5d9cd6adb4dbbb721f03149ad3186f8f054deda
+updated: 2016-12-29T14:10:27.789712102+09:00
 imports:
 - name: github.com/boltdb/bolt
   version: a705895fdad108f053eae7ee011ed94a0541ee13
@@ -25,6 +25,8 @@ imports:
   version: 3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4
 - name: github.com/pkg/errors
   version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
+- name: github.com/sirupsen/logrus
+  version: 881bee4e20a5d11a6a88a5667c6f292072ac1963
 - name: github.com/syndtr/goleveldb
   version: 23851d93a2292dcc56e71a18ec9e0624d84a0f65
   subpackages:
