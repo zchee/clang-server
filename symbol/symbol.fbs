@@ -6,39 +6,58 @@ namespace symbol.internal.symbol;
 
 // ----------------------------------------------------------------------------
 
-/// TranslationUnit translationunit of file.
-table TranslationUnit {
-	File: string (required);
-	Symbols: [Symbol];
-	Lastmodified: long; // time.Time.Unix(): int64
+/// File files of project.
+table File {
+  FileName: string (required, key); // -> []byte
+  TranslationUnit: string; // -> []byte
+  SymbolDatabase: SymbolDatabase;
+}
+
+/// SymbolDatabase translationunit of file.
+table SymbolDatabase {
+  Symbols: [Symbol] (id: 0);
+  Headers: [Header] (id: 1);
+  Includes: [string] (id: 2); // -> [][]byte
+  Mtime: long (id : 3); // time.Time.Unix(): int64
 }
 
 /// Symbol symbol of C/C++ sources.
 table Symbol {
-	// Name name of clang.Cursor.USR.
-	Name: string (id: 0, required, key);
-	/// Definition location of definition.
-	Definition: Location (id: 1);
-	/// Decls locations of declaration.
-	Decls: [Location] (id: 2);
-	/// Callers caller of functions.
-	Callers: [Caller] (id: 3);
+  /// ID hashed clang.Cursor.USR.
+  ID: string (id: 0, required, key); // -> []byte
+  /// Definition location of definition.
+  Definition: Location (id: 1);
+  /// Decls locations of declaration.
+  Decls: [Location] (id: 2);
+  /// Callers caller of functions.
+  Callers: [Caller] (id: 3);
 }
 
 /// Location location of cursor.
 table Location {
-	File: string (required);
-	Line: uint;    // clang.SourceLocation.Line: uint32
-	Col: uint = 0; // clang.SourceLocation.Col: uint32
-	Offset: uint;  // clang.SourceLocation.Offset: uint32
+  File: string (required); // -> []byte
+  Line: uint;    // clang.SourceLocation.Line: uint32
+  Col: uint = 0; // clang.SourceLocation.Col: uint32
+  Offset: uint;  // clang.SourceLocation.Offset: uint32
+}
+
+/// Headers header files of parse file.
+table Header {
+  FileID: string (id: 0, required, key); // -> []byte
+  Mtime: long (id: 1); // time.Time.Unix(): int64
 }
 
 /// Caller location of caller function.
 table Caller {
-	Location: Location (required);
-	FuncCall: bool = false;
+  Location: Location (required);
+  FuncCall: bool; // -> byte
+}
+
+rpc_service Clang {
+  Store(SymbolDatabase):Location (streaming: "bidi");
+  Retrieve(Location):SymbolDatabase (streaming: "bidi");
 }
 
 // ----------------------------------------------------------------------------
 
-root_type TranslationUnit;
+root_type File;
