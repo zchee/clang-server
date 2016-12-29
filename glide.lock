@@ -1,8 +1,8 @@
 hash: ca98c1dd9e43095cd0fff62076cf4dedb133a0bd748a731579ee268a2473e623
-updated: 2016-12-19T22:06:17.417432103+09:00
+updated: 2016-12-29T14:04:39.661876917+09:00
 imports:
 - name: github.com/boltdb/bolt
-  version: 0d9f544bb94aac29c185968483459ef74d6deb5d
+  version: a705895fdad108f053eae7ee011ed94a0541ee13
 - name: github.com/davecgh/go-spew
   version: 346938d642f2ec3594ed81d874461961cd0faa76
   subpackages:
@@ -18,7 +18,7 @@ imports:
 - name: github.com/golang/snappy
   version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
 - name: github.com/google/flatbuffers
-  version: 6d6271db2f8c4a5b6f0ff82506da0b5252f0e3ca
+  version: 69dc71b5ed0382e325f96a9bdef057fca94b1c77
   subpackages:
   - go
 - name: github.com/minio/blake2b-simd
@@ -26,7 +26,7 @@ imports:
 - name: github.com/pkg/errors
   version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
 - name: github.com/syndtr/goleveldb
-  version: 6b4daa5362b502898ddf367c5c11deb9e7a5c727
+  version: 23851d93a2292dcc56e71a18ec9e0624d84a0f65
   subpackages:
   - leveldb
   - leveldb/cache
@@ -41,13 +41,13 @@ imports:
   - leveldb/table
   - leveldb/util
 - name: github.com/tinylib/msgp
-  version: b433144bef5f20ebd771c0872945f6707ed3f178
+  version: 38a6f61a768dc24552dad94611923841b53acc4f
   subpackages:
   - msgp
 - name: github.com/uber-go/atomic
   version: 3b8db5e93c4c02efbc313e17b2e796b0914a01fb
 - name: github.com/uber-go/zap
-  version: 05dadc4e239529c50d6f730c17f0a3aaf35b64fd
+  version: a5783ee4b216a927da8f839c45cfbf9d694e1467
 - name: golang.org/x/net
   version: 45e771701b814666a7eb299e6c7a57d0b1799e91
   subpackages:
@@ -58,8 +58,12 @@ imports:
   - internal/timeseries
   - lex/httplex
   - trace
+- name: golang.org/x/sys
+  version: d75a52659825e75fff6158388dddc6a5b04f9ba5
+  subpackages:
+  - unix
 - name: google.golang.org/grpc
-  version: 8712952b7d646dbbbc6fb73a782174f3115060f3
+  version: c8105071640ef29fce843ed96983e864bb18eb0e
   subpackages:
   - codes
   - credentials
