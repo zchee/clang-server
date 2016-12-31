@@ -24,6 +24,11 @@ stages:
           ln -s /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
           ln -s /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
       - type: shell
+        name: "Install jstemmer/go-junit-report"
+        command: |
+          go get github.com/jstemmer/go-junit-report
+          mkdir -p /tmp/test-results
+      - type: shell
         name: "go test -v -x -race -cover ..."
         environment:
           COVER_MODE: atomic
@@ -36,7 +41,7 @@ stages:
           set -eu
           echo "mode: $COVER_MODE" > $COVERAGE_RESULT
           for pkg in $(go list ./... | grep -v vendor); do
-            go test -v -race -cover -covermode=$COVER_MODE -coverprofile=$COVERAGE_OUT $pkg
+            go test -v -race -cover -covermode=$COVER_MODE -coverprofile=$COVERAGE_OUT $pkg | go-junit-report > /tmp/test-results/$(basename $pkg).xml
             if [ -f $COVERAGE_OUT ]; then
               tail -n +2 $COVERAGE_OUT >> $COVERAGE_RESULT
               rm -f $COVERAGE_OUT
@@ -57,3 +62,5 @@ stages:
             do golint -set_exit_status $pkg
           done
           go vet $(go list ./... | grep -v vendor)
+      - type: test-results-store
+        path: /tmp/test-results
