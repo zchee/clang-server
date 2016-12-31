@@ -23,9 +23,11 @@ func TestNewCompilationDatabase(t *testing.T) {
 	}{
 		{
 			name: "new",
-			args: args{root: "./testdata"},
+			args: args{
+				root: "./testdata",
+			},
 			want: &CompilationDatabase{
-				projectRoot: "./testdata",
+				root: "./testdata",
 			},
 		},
 	}
@@ -33,19 +35,19 @@ func TestNewCompilationDatabase(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if got := NewCompilationDatabase(tt.args.root); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewCompilationDatabase(%v) = %v, want %v", tt.args.root, got, tt.want)
+			got := NewCompilationDatabase(tt.args.root)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewCompilationDatabase(%+v) = got %+v, want %+v", tt.args.root, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestCompilationDatabase_findFile(t *testing.T) {
+func TestCompilationDatabase_findJSONFile(t *testing.T) {
 	type fields struct {
-		projectRoot string
-		cd          clang.CompilationDatabase
-		found       bool
-		flags       map[string][]string
+		root  string
+		cd    clang.CompilationDatabase
+		flags map[string][]string
 	}
 	type args struct {
 		filename  string
@@ -60,7 +62,7 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 		{
 			name: "build directory",
 			fields: fields{
-				projectRoot: filepath.Join("./testdata", "builddir"),
+				root: filepath.Join("./testdata", "builddir"),
 			},
 			args: args{
 				filename:  DefaultJSONName,
@@ -71,7 +73,7 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 		{
 			name: "root directory",
 			fields: fields{
-				projectRoot: filepath.Join("./testdata", "root"),
+				root: filepath.Join("./testdata", "root"),
 			},
 			args: args{
 				filename:  DefaultJSONName,
@@ -82,7 +84,7 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 		{
 			name: "parent directory",
 			fields: fields{
-				projectRoot: filepath.Join("./testdata", "parent", "child"),
+				root: filepath.Join("./testdata", "parent", "child"),
 			},
 			args: args{
 				filename:  DefaultJSONName,
@@ -93,7 +95,7 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 		{
 			name: "specified filename with build directory",
 			fields: fields{
-				projectRoot: filepath.Join("./testdata", "specified_filename"),
+				root: filepath.Join("./testdata", "specified_filename"),
 			},
 			args: args{
 				filename:  "specified_filename.json",
@@ -104,7 +106,7 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 		{
 			name: "specified pathRange",
 			fields: fields{
-				projectRoot: filepath.Join("./testdata", "pathRange"),
+				root: filepath.Join("./testdata", "pathRange"),
 			},
 			args: args{
 				filename:  DefaultJSONName,
@@ -118,9 +120,9 @@ func TestCompilationDatabase_findFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			c := &CompilationDatabase{
-				projectRoot: tt.fields.projectRoot,
+				root: tt.fields.root,
 			}
-			if got := c.findFile(tt.args.filename, tt.args.pathRange); got != tt.want {
+			if got := c.findJSONFile(tt.args.filename, tt.args.pathRange); got != tt.want {
 				t.Errorf("CompilationDatabase.findFile(%v, %v) = %v, want %v", tt.args.filename, tt.args.pathRange, got, tt.want)
 			}
 		})
