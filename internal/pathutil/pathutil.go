@@ -22,7 +22,7 @@ func IsExist(filename string) bool {
 	return !os.IsNotExist(err) || err == nil
 }
 
-// IsNotExist returns whether the filename is exists.
+// IsNotExist returns whether the filename is not exists.
 func IsNotExist(filename string) bool {
 	_, err := os.Stat(filename)
 	return os.IsNotExist(err)
@@ -79,7 +79,7 @@ var rootMarks = []string{
 	".travis.yml", "circle.yml", // CI service config files
 	"CMakeLists.txt",                                                   // CMake
 	"autogen.sh", "configure", "Makefile.am", "Makefile.in", "INSTALL", // GNU Autotools
-	".hg", ".svn", ".bzr", "_darcs", ".tup", // not git vcs repository
+	".hg", ".svn", ".bzr", "_darcs", ".tup", // typical vcs directories
 }
 
 // FindProjectRoot finds the project root directory path from path.
