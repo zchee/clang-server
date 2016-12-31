@@ -107,8 +107,8 @@ func (c *CompilationDatabase) CompileCommands() []*CompileCommand {
 
 func (c *CompilationDatabase) compilerDefaultConfig(ch chan *compilerConfig) {
 	cc := "clang" // default is clang
-	if os.Getenv("CC") != "" {
-		cc = os.Getenv("CC")
+	if envCC := os.Getenv("CC"); envCC != "" {
+		cc = envCC
 	}
 	ccPath, err := exec.LookPath(cc)
 	if err != nil {
