@@ -1,10 +1,10 @@
-hash: f7b2fcd5bb2fbc8123189fecf5d9cd6adb4dbbb721f03149ad3186f8f054deda
-updated: 2016-12-29T14:10:27.789712102+09:00
+hash: 5d1035fb045af61d554d123618980f8d2e834edd540bbf51beeb161ec450342f
+updated: 2017-01-01T06:06:53.627212461+09:00
 imports:
 - name: github.com/boltdb/bolt
   version: a705895fdad108f053eae7ee011ed94a0541ee13
 - name: github.com/davecgh/go-spew
-  version: 346938d642f2ec3594ed81d874461961cd0faa76
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
   - spew
 - name: github.com/go-clang/v3.9
@@ -12,7 +12,7 @@ imports:
   subpackages:
   - clang
 - name: github.com/golang/protobuf
-  version: 8ee79997227bf9b34611aee7946ae64735e6fd93
+  version: df1d3ca07d2d07bba352d5b73c4313b4e2a6203e
   subpackages:
   - proto
 - name: github.com/golang/snappy
@@ -53,7 +53,7 @@ imports:
 - name: github.com/uber-go/zap
   version: a5783ee4b216a927da8f839c45cfbf9d694e1467
 - name: golang.org/x/net
-  version: 45e771701b814666a7eb299e6c7a57d0b1799e91
+  version: 6d3beaea10370160dea67f5c9327ed791afd5389
   subpackages:
   - context
   - http2
