@@ -20,10 +20,9 @@ stages:
           echo "deb http://apt.llvm.org/jessie/ llvm-toolchain-jessie-${LLVM_VERSION} main" >> /etc/apt/sources.list
           wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
           apt-get update
-          apt-get -y --no-install-recommends install "llvm-${LLVM_VERSION}" "clang-${LLVM_VERSION}" "libclang1-${LLVM_VERSION}" "lldb-${LLVM_VERSION}"
+          apt-get install -y --no-install-recommends clang-${LLVM_VERSION} libclang-common-${LLVM_VERSION}-dev libclang-${LLVM_VERSION}-dev libclang1-${LLVM_VERSION} libclang1-${LLVM_VERSION}-dbg libllvm${LLVM_VERSION} libllvm${LLVM_VERSION}-dbg lldb-${LLVM_VERSION} llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev llvm-${LLVM_VERSION}-runtime lldb-${LLVM_VERSION} liblldb-${LLVM_VERSION}-dbg
           ln -s /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
           ln -s /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
-          ln -s "$(llvm-config-${LLVM_VERSION} --libdir)/libclang-${LLVM_VERSION}.so.1" "$(llvm-config-${LLVM_VERSION} --libdir)/libclang.so"
       - type: shell
         name: "go test -v -x -race -cover ..."
         environment:
