@@ -46,6 +46,8 @@ imports:
   version: 38a6f61a768dc24552dad94611923841b53acc4f
   subpackages:
   - msgp
+- name: github.com/tmthrgd/go-hex
+  version: e648309466c4639fec0373f9565eeec831b58a34
 - name: github.com/uber-go/atomic
   version: 3b8db5e93c4c02efbc313e17b2e796b0914a01fb
 - name: github.com/uber-go/zap
