@@ -58,11 +58,6 @@ func ProjectCacheDir(root string) string {
 	// assume the absolude directory path
 	id := hashutil.NewHashString(root)
 	dir := filepath.Join(CacheDir(), filepath.Base(root)+"."+hashutil.EncodeToString(id))
-	if IsNotExist(dir) {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			log.Fatal(err)
-		}
-	}
 	return dir
 }
 
