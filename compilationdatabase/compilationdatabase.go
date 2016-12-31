@@ -5,14 +5,19 @@
 package compilationdatabase
 
 import (
+	"bufio"
+	"bytes"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/go-clang/v3.9/clang"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/uber-go/zap"
 	"github.com/zchee/clang-server/internal/pathutil"
-	"github.com/zchee/clang-server/log"
 )
 
 // DefaultJSONName default of compile_commands.json filename.
@@ -24,10 +29,23 @@ var ErrNotFound = errors.New("couldn't find the compile_commands.json")
 // CompilationDatabase represents a consist of an array of “command objects”,
 // where each command object specifies one way a translation unit is compiled in the project.
 type CompilationDatabase struct {
-	projectRoot string
+	root string
 
-	cd clang.CompilationDatabase
-	cc []*CompileCommand
+	cd             clang.CompilationDatabase
+	cmds           []*CompileCommand
+	CompilerConfig *compilerConfig
+
+	mu sync.Mutex
+}
+
+type compilerConfig struct {
+	Target             string
+	ThreadModel        string
+	InstalledDir       string
+	DefaultFlag        []string
+	Version            string
+	SystemIncludeDir   []string
+	SystemFrameworkDir []string
 }
 
 // CompileCommand represents a each command object contains the translation unit’s main file,
@@ -48,17 +66,110 @@ type CompileCommand struct {
 // NewCompilationDatabase return the new CompilationDatabase.
 func NewCompilationDatabase(root string) *CompilationDatabase {
 	return &CompilationDatabase{
-		projectRoot: root,
+		root: root,
 	}
 }
 
+// Parse parses the project root directory recursively, and cache the compile
+// flags to flags map.
+func (c *CompilationDatabase) Parse(jsonfile string, pathRange ...string) error {
+	ch := make(chan *compilerConfig, 1)
+	go c.compilerDefaultConfig(ch)
+
+	if jsonfile == "" {
+		jsonfile = DefaultJSONName
+	}
+	dir := c.findJSONFile(jsonfile, pathRange)
+	if dir == "" {
+		return ErrNotFound
+	}
+
+	cErr, cd := clang.FromDirectory(dir)
+	if cErr != clang.CompilationDatabase_NoError {
+		return errors.WithStack(cErr)
+	}
+	c.cd = cd
+	defer c.cd.Dispose()
+
+	c.CompilerConfig = <-ch
+
+	if err := c.parseFlags(); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+// CompileCommands return the CompileCommand struct based parse result.
+func (c *CompilationDatabase) CompileCommands() []*CompileCommand {
+	return c.cmds
+}
+
+func (c *CompilationDatabase) compilerDefaultConfig(ch chan *compilerConfig) {
+	cc := "clang" // default is clang
+	if os.Getenv("CC") != "" {
+		cc = os.Getenv("CC")
+	}
+	ccPath, err := exec.LookPath(cc)
+	if err != nil {
+		log.Fatalf("couldn't find %s", cc)
+	}
+
+	cmd := exec.Command(ccPath, "-v", "-x", "c++", "/dev/null", "-fsyntax-only")
+
+	var b bytes.Buffer
+	cmd.Stdout = &b
+	cmd.Stderr = &b
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("couldn't find %s", cc)
+	}
+	scan := bufio.NewScanner(&b)
+
+	var include bool
+	cfg := new(compilerConfig)
+	for scan.Scan() {
+		s := scan.Text()
+		if include {
+			if strings.HasPrefix(s, "End") {
+				include = false
+				break
+			}
+			if strings.Contains(s, "framework directory") {
+				path := strings.TrimSpace(s)
+				cfg.SystemFrameworkDir = append(cfg.SystemFrameworkDir, "-F"+strings.TrimSuffix(path, " (framework directory)"))
+			} else {
+				cfg.SystemIncludeDir = append(cfg.SystemIncludeDir, "-I"+strings.TrimSpace(s))
+			}
+		}
+		switch {
+		case strings.HasPrefix(s, "Target"):
+			cfg.Target = strings.TrimPrefix(s, "Target: ")
+		case strings.HasPrefix(s, "Thread model"):
+			cfg.ThreadModel = strings.TrimPrefix(s, "Thread model: ")
+		case strings.HasPrefix(s, "InstalledDir"):
+			cfg.InstalledDir = strings.TrimPrefix(s, "InstalledDir: ")
+		case (strings.Contains(s, cfg.InstalledDir) && strings.Contains(s, "-cc1")):
+			flags := strings.Fields(s)
+			cfg.DefaultFlag = flags[1 : len(flags)-1]
+		case strings.HasPrefix(s, cc):
+			sep := strings.Split(s, "version ")
+			version := strings.Split(sep[1], " ")[0]
+			cfg.Version = version
+		case strings.HasPrefix(s, "#include <...>"):
+			include = true
+		}
+	}
+
+	ch <- cfg
+}
+
 // findFile finds the filename on pathRange recursively.
-func (c *CompilationDatabase) findFile(filename string, pathRange []string) string {
+func (c *CompilationDatabase) findJSONFile(filename string, pathRange []string) string {
 	if pathRange == nil {
-		parent := filepath.Dir(c.projectRoot)             // parent of projectRoot
-		buildDir := filepath.Join(c.projectRoot, "build") // projectRoot/build
-		outDir := filepath.Join(c.projectRoot, "out")     // projectRoot/out
-		pathRange = []string{c.projectRoot, parent, buildDir, outDir}
+		parent := filepath.Dir(c.root)             // parent of projectRoot
+		buildDir := filepath.Join(c.root, "build") // projectRoot/build
+		outDir := filepath.Join(c.root, "out")     // projectRoot/out
+		pathRange = []string{c.root, parent, buildDir, outDir}
 	}
 
 	pathCh := make(chan string, len(pathRange))
@@ -74,49 +185,36 @@ func (c *CompilationDatabase) findFile(filename string, pathRange []string) stri
 	return <-pathCh
 }
 
-// Parse parses the project root directory recursively, and cache the compile
-// flags to flags map.
-func (c *CompilationDatabase) Parse(jsonfile string, pathRange ...string) error {
-	if jsonfile == "" {
-		jsonfile = DefaultJSONName
-	}
-
-	dir := c.findFile(jsonfile, pathRange)
-	if dir == "" {
-		return ErrNotFound
-	}
-
-	cErr, cd := clang.FromDirectory(dir)
-	if cErr != clang.CompilationDatabase_NoError {
-		return errors.WithStack(cErr)
-	}
-
-	c.cd = cd
-	defer c.cd.Dispose()
-
-	if err := c.parseFlags(); err != nil {
-		return errors.WithStack(err)
-	}
-
-	return nil
-}
-
 // parseFlags parses the all of project files compile flag.
 func (c *CompilationDatabase) parseFlags() error {
 	cmds := c.cd.AllCompileCommands()
 	ncmds := cmds.Size()
-	c.cc = make([]*CompileCommand, 0, ncmds)
+	c.cmds = make([]*CompileCommand, 0, ncmds)
 
+	var wg sync.WaitGroup
 	for i := uint32(0); i < ncmds; i++ {
-		cmd := cmds.Command(i)
-		args := c.formatFlag(cmd)
-		c.cc = append(c.cc, &CompileCommand{
-			Directory: cmd.Directory(),
-			File:      cmd.Filename(),
-			Command:   strings.Join(args, " "),
-			Arguments: args,
-		})
+		wg.Add(1)
+		i := i
+
+		go func(i uint32) {
+			c.mu.Lock()
+			defer func() {
+				wg.Done()
+				c.mu.Unlock()
+			}()
+
+			cmd := cmds.Command(i)
+			args := c.formatFlag(cmd)
+			c.cmds = append(c.cmds, &CompileCommand{
+				Directory: cmd.Directory(),
+				File:      cmd.Filename(),
+				Command:   strings.Join(args, " "),
+				Arguments: args,
+			})
+		}(i)
 	}
+
+	wg.Wait()
 
 	return nil
 }
@@ -185,16 +283,11 @@ func (c *CompilationDatabase) absPath(includePath, buildDir string) string {
 		return includePath
 	}
 
-	for _, d := range []string{buildDir, c.projectRoot} {
+	for _, d := range []string{buildDir, c.root} {
 		if dir := filepath.Join(d, includePath); pathutil.IsExist(dir) {
 			return dir
 		}
 	}
 
 	return includePath
-}
-
-// CompileCommands return the CompileCommand struct based parse result.
-func (c *CompilationDatabase) CompileCommands() []*CompileCommand {
-	return c.cc
 }
