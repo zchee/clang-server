@@ -142,8 +142,9 @@ vendor/clean: glide
 	@cp -r $(GOPATH)/src/github.com/go-clang/v3.9/clang/clang-c ./vendor/github.com/go-clang/v3.9/clang
 
 fbs:
-	${RM} -r ./symbol/internal/symbol
+	@${RM} -r ./symbol/internal/symbol
 	flatc --go --grpc $(shell find ./symbol -type f -name '*.fbs')
+	@gofmt -w ./symbol/internal/symbol
 
 clang-format:
 	clang-format -i -sort-includes $(shell find testdata -type f -name '*.c' -or -name '*.cpp')
