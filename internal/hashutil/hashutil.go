@@ -5,11 +5,11 @@
 package hashutil
 
 import (
-	"encoding/hex"
 	"reflect"
 	"unsafe"
 
 	blake2b "github.com/minio/blake2b-simd"
+	hex "github.com/tmthrgd/go-hex"
 )
 
 // NewHash converts the b to blake2b sum512 hash.
