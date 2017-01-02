@@ -27,3 +27,4 @@ import:
   - msgp
 - package: github.com/sirupsen/logrus
 - package: github.com/tmthrgd/go-hex
+- package: github.com/pkg/profile
