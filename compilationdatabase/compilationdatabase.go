@@ -72,7 +72,7 @@ func NewCompilationDatabase(root string) *CompilationDatabase {
 
 // Parse parses the project root directory recursively, and cache the compile
 // flags to flags map.
-func (c *CompilationDatabase) Parse(jsonfile string, pathRange ...string) error {
+func (c *CompilationDatabase) Parse(jsonfile string, pathRange []string) error {
 	ch := make(chan *compilerConfig, 1)
 	go c.compilerDefaultConfig(ch)
 
