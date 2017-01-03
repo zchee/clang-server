@@ -1,10 +1,10 @@
-hash: 9bcd85eee5f3191f02652c24e3b9716383d269df8c44c21632e2bfaefd87b49a
-updated: 2017-01-02T21:22:46.788708769+09:00
+hash: 21eeed89e490e9be921ba8e5ead9d954877f563db60feb7e517a8f99c4407ce8
+updated: 2017-01-04T03:15:52.10159277+09:00
 imports:
 - name: github.com/boltdb/bolt
   version: a705895fdad108f053eae7ee011ed94a0541ee13
 - name: github.com/davecgh/go-spew
-  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
+  version: 346938d642f2ec3594ed81d874461961cd0faa76
   subpackages:
   - spew
 - name: github.com/go-clang/v3.9
@@ -44,10 +44,6 @@ imports:
   - leveldb/storage
   - leveldb/table
   - leveldb/util
-- name: github.com/tinylib/msgp
-  version: 38a6f61a768dc24552dad94611923841b53acc4f
-  subpackages:
-  - msgp
 - name: github.com/tmthrgd/go-hex
   version: e648309466c4639fec0373f9565eeec831b58a34
 - name: github.com/uber-go/atomic
@@ -69,7 +65,7 @@ imports:
   subpackages:
   - unix
 - name: google.golang.org/grpc
-  version: c8105071640ef29fce843ed96983e864bb18eb0e
+  version: 708a7f9f3283aa2d4f6132d287d78683babe55c8
   subpackages:
   - codes
   - credentials

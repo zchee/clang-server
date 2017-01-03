@@ -107,18 +107,11 @@ func NewClientStream(ctx context.Context, desc *StreamDesc, cc *ClientConn, meth
 
 func newClientStream(ctx context.Context, desc *StreamDesc, cc *ClientConn, method string, opts ...CallOption) (_ ClientStream, err error) {
 	var (
-		t      transport.ClientTransport
-		s      *transport.Stream
-		put    func()
-		cancel context.CancelFunc
+		t   transport.ClientTransport
+		s   *transport.Stream
+		put func()
 	)
 	c := defaultCallInfo
-	if mc, ok := cc.getMethodConfig(method); ok {
-		c.failFast = !mc.WaitForReady
-		if mc.Timeout > 0 {
-			ctx, cancel = context.WithTimeout(ctx, mc.Timeout)
-		}
-	}
 	for _, o := range opts {
 		if err := o.before(&c); err != nil {
 			return nil, toRPCErr(err)
@@ -207,13 +200,12 @@ func newClientStream(ctx context.Context, desc *StreamDesc, cc *ClientConn, meth
 		break
 	}
 	cs := &clientStream{
-		opts:   opts,
-		c:      c,
-		desc:   desc,
-		codec:  cc.dopts.codec,
-		cp:     cc.dopts.cp,
-		dc:     cc.dopts.dc,
-		cancel: cancel,
+		opts:  opts,
+		c:     c,
+		desc:  desc,
+		codec: cc.dopts.codec,
+		cp:    cc.dopts.cp,
+		dc:    cc.dopts.dc,
 
 		put: put,
 		t:   t,
@@ -257,17 +249,16 @@ func newClientStream(ctx context.Context, desc *StreamDesc, cc *ClientConn, meth
 
 // clientStream implements a client side Stream.
 type clientStream struct {
-	opts   []CallOption
-	c      callInfo
-	t      transport.ClientTransport
-	s      *transport.Stream
-	p      *parser
-	desc   *StreamDesc
-	codec  Codec
-	cp     Compressor
-	cbuf   *bytes.Buffer
-	dc     Decompressor
-	cancel context.CancelFunc
+	opts  []CallOption
+	c     callInfo
+	t     transport.ClientTransport
+	s     *transport.Stream
+	p     *parser
+	desc  *StreamDesc
+	codec Codec
+	cp    Compressor
+	cbuf  *bytes.Buffer
+	dc    Decompressor
 
 	tracing bool // set to EnableTracing when the clientStream is created.
 
@@ -458,11 +449,6 @@ func (cs *clientStream) closeTransportStream(err error) {
 }
 
 func (cs *clientStream) finish(err error) {
-	defer func() {
-		if cs.cancel != nil {
-			cs.cancel()
-		}
-	}()
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 	for _, o := range cs.opts {
