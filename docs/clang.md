@@ -1,6 +1,11 @@
 clang
 =====
 
+Clang latest documentation
+--------------------------
+
+http://clang.llvm.org/docs/
+
 command line flags
 ------------------
 
