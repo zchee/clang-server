@@ -1,0 +1,112 @@
+{
+    "memo": "35337d0adc0239dfa01b324998cafbef55e31df8f81f536dcfa7566afa63d196",
+    "projects": [
+        {
+            "name": "github.com/go-clang/v3.9",
+            "branch": "master",
+            "revision": "672a03cec7596e03cfecaaf8139021eb5a5f1097",
+            "packages": [
+                "clang"
+            ]
+        },
+        {
+            "name": "github.com/golang/protobuf",
+            "branch": "master",
+            "revision": "8ee79997227bf9b34611aee7946ae64735e6fd93",
+            "packages": [
+                "proto"
+            ]
+        },
+        {
+            "name": "github.com/golang/snappy",
+            "branch": "master",
+            "revision": "7db9049039a047d955fe8c19b83c8ff5abd765c7",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/google/flatbuffers",
+            "branch": "master",
+            "revision": "f9055ff9a79edcf830bf5d7d11c7d321e439b7ad",
+            "packages": [
+                "go"
+            ]
+        },
+        {
+            "name": "github.com/minio/blake2b-simd",
+            "branch": "master",
+            "revision": "3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/pkg/errors",
+            "branch": "master",
+            "revision": "248dadf4e9068a0b3e79f02ed0a610d935de5302",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/sirupsen/logrus",
+            "branch": "master",
+            "revision": "61e43dc76f7ee59a82bdf3d71033dc12bea4c77d",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/syndtr/goleveldb",
+            "branch": "master",
+            "revision": "23851d93a2292dcc56e71a18ec9e0624d84a0f65",
+            "packages": [
+                "leveldb"
+            ]
+        },
+        {
+            "name": "github.com/tmthrgd/asm",
+            "branch": "master",
+            "revision": "fe65b6572383981b727ea3dd2fd91e5d5893126c",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/tmthrgd/go-hex",
+            "branch": "master",
+            "revision": "6ed1a27605c932131ab3ffb2da8821d2b9676fc7",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "golang.org/x/net",
+            "branch": "master",
+            "revision": "f2499483f923065a842d38eb4c7f1927e6fc6e6d",
+            "packages": [
+                "context",
+                "http2",
+                "http2/hpack",
+                "trace"
+            ]
+        },
+        {
+            "name": "golang.org/x/sys",
+            "branch": "master",
+            "revision": "d75a52659825e75fff6158388dddc6a5b04f9ba5",
+            "packages": [
+                "unix"
+            ]
+        },
+        {
+            "name": "google.golang.org/grpc",
+            "branch": "master",
+            "revision": "21f8ed309495401e6fd79b3a9fd549582aed1b4c",
+            "packages": [
+                "."
+            ]
+        }
+    ]
+}

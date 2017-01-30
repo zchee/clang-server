@@ -1,0 +1,31 @@
+{
+    "dependencies": {
+        "github.com/go-clang/v3.9": {
+            "branch": "master"
+        },
+        "github.com/google/flatbuffers": {
+            "branch": "master"
+        },
+        "github.com/minio/blake2b-simd": {
+            "branch": "master"
+        },
+        "github.com/pkg/errors": {
+            "branch": "master"
+        },
+        "github.com/sirupsen/logrus": {
+            "branch": "master"
+        },
+        "github.com/syndtr/goleveldb": {
+            "branch": "master"
+        },
+        "github.com/tmthrgd/go-hex": {
+            "branch": "master"
+        },
+        "golang.org/x/net": {
+            "branch": "master"
+        },
+        "google.golang.org/grpc": {
+            "branch": "master"
+        }
+    }
+}
