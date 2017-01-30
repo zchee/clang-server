@@ -16,7 +16,6 @@ import (
 	"github.com/go-clang/v3.9/clang"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"github.com/uber-go/zap"
 	"github.com/zchee/clang-server/internal/pathutil"
 )
 
@@ -176,7 +175,7 @@ func (c *CompilationDatabase) findJSONFile(filename string, pathRange []string) 
 	for _, d := range pathRange {
 		go func(d string) {
 			if pathutil.IsExist(filepath.Join(d, filename)) {
-				log.Debug("found", zap.String("filepath", filepath.Join(d, filename)))
+				log.Debugf("found filepath: %s", filepath.Join(d, filename))
 				pathCh <- d
 			}
 		}(d)
@@ -228,16 +227,14 @@ func (c *CompilationDatabase) formatFlag(cmd clang.CompileCommand) []string {
 		f := cmd.Arg(i)
 		dir := cmd.Directory()
 		switch {
-		case
-			f == "-D",         // <macroname>=<value>: Adds an implicit #define into the predefines buffer which is read before the source file is preprocessed
+		case f == "-D", // <macroname>=<value>: Adds an implicit #define into the predefines buffer which is read before the source file is preprocessed
 			f == "-U",         // <macroname>: Adds an implicit #undef into the predefines buffer which is read before the source file is preprocessed
 			f == "-isysroot",  // <dir>: Add directory to SYSTEM include search path
 			f == "-framework": // <name>: Tells the linker to search for `name.framework/name' the framework search path
 
 			flags = append(flags, f, cmd.Arg(i+1))
 
-		case
-			strings.HasPrefix(f, "-D"),                     // <macroname>=<value>: Adds an implicit #define into the predefines buffer which is read before the source file is preprocessed
+		case strings.HasPrefix(f, "-D"), // <macroname>=<value>: Adds an implicit #define into the predefines buffer which is read before the source file is preprocessed
 			strings.HasPrefix(f, "-U"),                     // <macroname>: Adds an implicit #undef into the predefines buffer which is read before the source file is preprocessed
 			strings.HasPrefix(f, "-std"),                   // <language>: Specify the language standard
 			strings.HasPrefix(f, "-stdlib"),                // <library>: Specify the C++ standard library to use
@@ -246,8 +243,7 @@ func (c *CompilationDatabase) formatFlag(cmd clang.CompileCommand) []string {
 
 			flags = append(flags, f)
 
-		case
-			f == "-I",                 // <value>: Specified directory to the search path for include files
+		case f == "-I", // <value>: Specified directory to the search path for include files
 			f == "-F",                 // <directory>: Specified directory to the search path for framework include files
 			f == "-idirafter",         // <value>: Add directory to AFTER include search path
 			f == "-iframework",        // <value>: Add directory to SYSTEM framework search path
