@@ -1,5 +1,5 @@
-LLVM_LIBDIR := $(shell llvm-config --libdir)
-GIT_REVISION := $(shell git rev-parse --short HEAD)
+LLVM_LIBDIR = $(shell llvm-config --libdir)
+GIT_REVISION = $(shell git rev-parse --short HEAD)
 
 GO_GCFLAGS ?= 
 GO_LDFLAGS := -X "main.Revision=$(GIT_REVISION)"
@@ -7,24 +7,17 @@ CGO_CFLAGS ?=
 CGO_LDFLAGS ?= -L$(LLVM_LIBDIR)
 GO_BUILD_FLAGS ?=
 GO_TEST_FLAGS := 
-GO_PACKAGES := $(shell glide novendor)
+GO_PACKAGES = $(shell glide novendor)
 
 
 ifneq ($(CLANG_SERVER_DEBUG),)
-	GO_GCFLAGS += -N -l
-	CGO_CFLAGS += -g -O0
+	GO_GCFLAGS+= -N -l
+	CGO_CFLAGS+= -g
 	GO_BUILD_FLAGS += -v -x
 	GO_TEST_FLAGS += -v -race
 else
 	GO_LDFLAGS += -w -s
 	CGO_CFLAGS += -O3
-endif
-
-ifneq ($(shell command -v ccache-clang 2> /dev/null),)
-	CC := ccache-clang
-endif
-ifneq ($(shell command -v ccache-clang++ 2> /dev/null),)
-	CXX := ccache-clang++
 endif
 
 ifneq ($(STATIC),)
@@ -79,37 +72,64 @@ ifneq ($(STATIC),)
 		libclangToolingCore \
 		libfindAllSymbols
 
-	LLVM_DEPS := \
-		ncursesw \
-		zlib \
-		libffi
+	LLVM_DEPS := $(shell llvm-config --system-libs)
 
 	# TODO(zchee): Support windows
 	GO_OS := $(shell go env GOOS)
 	ifeq ($(GO_OS),linux)
-		# Basically, darwin ld linker does not support -static flag because that for only build the xnu kernel. And will not found -crt0.o object file.
+		# Basically, darwin ld linker flag does not support "-extldflags='-static'" flag, because that for only build the xnu kernel. And will not found -crt0.o object file.
 		# If install the 'Csu' from opensource.apple.com, passes -crt0.o error but needs libpthread.a static library.
-		GO_LDFLAGS += -extldflags "-static"
+		GO_LDFLAGS += -extldflags=-static
 		CGO_LDFLAGS += -Wl,-Bstatic
 	endif
-	CGO_LDFLAGS += $(shell llvm-config --libfiles) $(foreach lib,$(LLVM_LIBS),$(LLVM_LIBDIR)/$(lib).a) $(shell pkg-config $(LLVM_DEPS) --libs --static) -lc++
+	CGO_CXXFLAGS := -std=c++1y -stdlib=libc++
+	CGO_LDFLAGS += $(shell llvm-config --libfiles --link-static) $(foreach lib,$(shell command ls /usr/lib/llvm-3.9/lib/libclang*.a),$(lib)) $(LLVM_DEPS) -L/usr/lib -lc++
 	ifeq ($(GO_OS),linux)
 		CGO_LDFLAGS += -Wl,-Bdynamic
 	endif
 endif
 
+UNUSED := \
+	vendor/github.com/google/flatbuffers/CMake \
+	vendor/github.com/google/flatbuffers/CMakeLists.txt \
+	vendor/github.com/google/flatbuffers/CONTRIBUTING.md \
+	vendor/github.com/google/flatbuffers/ISSUE_TEMPLATE.md \
+	vendor/github.com/google/flatbuffers/android \
+	vendor/github.com/google/flatbuffers/appveyor.yml \
+	vendor/github.com/google/flatbuffers/biicode.conf \
+	vendor/github.com/google/flatbuffers/biicode \
+	vendor/github.com/google/flatbuffers/composer.json \
+	vendor/github.com/google/flatbuffers/docs \
+	vendor/github.com/google/flatbuffers/grpc \
+	vendor/github.com/google/flatbuffers/include \
+	vendor/github.com/google/flatbuffers/java \
+	vendor/github.com/google/flatbuffers/js \
+	vendor/github.com/google/flatbuffers/net \
+	vendor/github.com/google/flatbuffers/php \
+	vendor/github.com/google/flatbuffers/pom.xml \
+	vendor/github.com/google/flatbuffers/python \
+	vendor/github.com/google/flatbuffers/reflection \
+	vendor/github.com/google/flatbuffers/samples \
+	vendor/github.com/google/flatbuffers/src \
+	vendor/github.com/google/flatbuffers/tests \
+	vendor/google.golang.org/grpc/Documentation \
+	vendor/google.golang.org/grpc/benchmark \
+	vendor/google.golang.org/grpc/test \
+	vendor/google.golang.org/grpc/testdata \
+	vendor/google.golang.org/grpc/transport/testdata
+
 
 default: build
 
 build:
-	go build -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) ./cmd/clang-server
+	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_CXXFLAGS='$(CGO_CXXFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go build -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' ./cmd/clang-server
 
 build-race: GO_BUILD_FLAGS+=-race;build
 
 install:
-	go install -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) ./cmd/clang-server
+	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_CXXFLAGS='$(CGO_CXXFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go install -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' ./cmd/clang-server
 
-run: clean-db
+run: clean/db
 	go run -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) ./cmd/clang-server/main.go -path /Users/zchee/src/github.com/neovim/neovim
 
 test:
@@ -121,6 +141,18 @@ lint:
 vet:
 	@go vet -v -race $(GO_PACKAGES)
 
+prof/cpu:
+	go tool pprof -top -cum clang-server cpu.pprof
+
+prof/mem:
+	go tool pprof -top -cum clang-server mem.pprof
+
+prof/block:
+	go tool pprof -top -cum clang-server block.pprof
+
+prof/trace:
+	go tool pprof -top -cum clang-server trace.pprof
+
 glide:
 ifeq ($(shell command -v glide 2> /dev/null),)
 	go get -v github.com/Masterminds/glide
@@ -130,16 +162,18 @@ vendor/restore: glide
 	glide install
 
 vendor/install: glide
-	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go install -v -x -tags '$(GO_BUILD_TAGS)' $(shell glide list 2> /dev/null  | awk 'NR > 1{print $$1}' | sed s'/^/.\/vendor\//g')
-	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go install -v -x -race -tags '$(GO_BUILD_TAGS)' $(shell glide list 2> /dev/null  | awk 'NR > 1{print $$1}' | sed s'/^/.\/vendor\//g')
+	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_CXXFLAGS='$(CGO_CXXFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go install -v -x -tags '$(GO_BUILD_TAGS)' $(shell go list ./... | grep -v vendor)
+	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_CXXFLAGS='$(CGO_CXXFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go install -v -x -race -tags '$(GO_BUILD_TAGS)'  $(shell go list ./... | grep -v vendor)
 
 vendor/update: glide
 	glide cache-clear
 	glide update
 
-vendor/clean: glide
-	@glide-vc --only-code --no-tests
-	@cp -r $(GOPATH)/src/github.com/go-clang/v3.9/clang/clang-c ./vendor/github.com/go-clang/v3.9/clang
+vendor/clean:
+	rm -rf $(UNUSED)
+	find vendor -type f -name '*_test.go' -print -exec rm -fr {} ";"
+	find vendor \( -name 'testdata' -o -name 'cmd' -o -name 'examples' -o -name 'testutil' \) -print -exec rm -fr {} ";"
+	find vendor \( -name 'Makefile' -o -name 'Dockerfile' -o -name 'CHANGELOG*' -o -name '.travis.yml' -o -name 'appveyor.yml' -o -name '*.sh' -o -name '*.pl' -o -name 'codereview.cfg' -o -name '.github' -o -name '.gitignore' -o -name '.gitattributes' \) -print -exec rm -fr {} ";"
 
 fbs:
 	@${RM} -r ./symbol/internal/symbol
@@ -153,9 +187,9 @@ serve: clean build
 	./clang-server
 
 clean:
-	${RM} clang-server
+	${RM} clang-server *.pprof
 
-clean/db:
+clean/cache:
 	${RM} -r $(XDG_CACHE_HOME)/clang-server/
 
 .PHONY: build install run test lint vet glide vendor/restore vendor/install vendor/update vendor/clean fbs clang-format serve clean clean/db
