@@ -33,14 +33,6 @@ table Symbol {
   Callers: [Caller] (id: 3);
 }
 
-/// Location location of cursor.
-table Location {
-  File: string (required); // -> []byte
-  Line: uint;    // clang.SourceLocation.Line: uint32
-  Col: uint = 0; // clang.SourceLocation.Col: uint32
-  Offset: uint;  // clang.SourceLocation.Offset: uint32
-}
-
 /// Headers header files of parse file.
 table Header {
   FileID: string (id: 0, required, key); // -> []byte
@@ -51,6 +43,14 @@ table Header {
 table Caller {
   Location: Location (required);
   FuncCall: bool; // -> byte
+}
+
+/// Location location of cursor.
+table Location {
+  File: string (required); // -> []byte
+  Line: uint;    // clang.SourceLocation.Line: uint32
+  Col: uint = 0; // clang.SourceLocation.Col: uint32
+  Offset: uint;  // clang.SourceLocation.Offset: uint32
 }
 
 rpc_service Clang {
