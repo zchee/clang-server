@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,7 +21,7 @@ import (
 	"github.com/zchee/clang-server/compilationdatabase"
 	"github.com/zchee/clang-server/indexdb"
 	"github.com/zchee/clang-server/internal/pathutil"
-	"github.com/zchee/clang-server/parser/clang/builtinheader"
+	"github.com/zchee/clang-server/parser/builtinheader"
 	"github.com/zchee/clang-server/symbol"
 )
 
@@ -106,27 +107,36 @@ func NewParser(path string, config Config) *Parser {
 
 // CreateBulitinHeaders creates(dumps) a clang builtin header to cache directory.
 func CreateBulitinHeaders() error {
-	files, err := builtinheader.AssetDir("clang/include")
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	cacheDir := pathutil.CacheDir()
-	includeDir := filepath.Join(cacheDir, "clang", "include")
-	if pathutil.IsNotExist(includeDir) {
-		if err := os.MkdirAll(includeDir, 0700); err != nil {
-			return err
-		}
-	}
-
-	for _, f := range files {
-		data, err := builtinheader.Asset(filepath.Join("clang/include", f))
-		if err != nil {
-			continue
-		}
-		if err := ioutil.WriteFile(filepath.Join(includeDir, f), data, 0600); err != nil {
+	builtinHdrDir := filepath.Join(pathutil.CacheDir(), "clang", "include")
+	if pathutil.IsNotExist(builtinHdrDir) {
+		if err := os.MkdirAll(builtinHdrDir, 0700); err != nil {
 			return errors.WithStack(err)
 		}
 	}
+
+	for _, fname := range builtinheader.AssetNames() {
+		data, err := builtinheader.AssetInfo(fname)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		if strings.Contains(data.Name(), string(filepath.Separator)) {
+			dir, _ := filepath.Split(data.Name())
+			if err := os.MkdirAll(filepath.Join(builtinHdrDir, dir), 0700); err != nil {
+				return errors.WithStack(err)
+			}
+		}
+
+		buf, err := builtinheader.Asset(data.Name())
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		if err := ioutil.WriteFile(filepath.Join(builtinHdrDir, data.Name()), buf, 0600); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
 	return nil
 }
 
@@ -141,8 +151,8 @@ func (p *Parser) Walk() {
 	compilerConfig := p.cd.CompilerConfig
 	flags = compilerConfig.SystemIncludeDir
 	flags = append(flags, compilerConfig.SystemFrameworkDir...)
-	includeDir := filepath.Join(pathutil.CacheDir(), "clang", "include")
-	flags = append(flags, "-I"+includeDir,
+	builtinHdrDir := filepath.Join(pathutil.CacheDir(), "clang", "include")
+	flags = append(flags, "-I"+builtinHdrDir,
 		"-Wno-nullability-completeness", // TODO(zchee): stdlib.h,stdio.h: pointer is missing a nullability type specifier (_Nonnull, _Nullable, or _Null_unspecified)
 		"-Wno-expansion-to-defined")     // TODO(zchee): macro expansion producing 'defined' has undefined behavior
 
@@ -210,7 +220,7 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 	}
 	defer tu.Dispose()
 
-	// p.PrintDiagnostics(tu.Diagnostics())
+	// p.printDiagnostics(tu.Diagnostics())
 	symDB := NewSymbolDB(filename)
 	visitNode := func(cursor, parent clang.Cursor) clang.ChildVisitResult {
 		if cursor.IsNull() {
@@ -291,7 +301,7 @@ func (p *Parser) serializeTranslationUnit(filename string, tu clang.TranslationU
 	return buf
 }
 
-// PrintDiagnostics prints a diagnostics information.
+// printDiagnostics prints a diagnostics information.
 func (p *Parser) printDiagnostics(diags []clang.Diagnostic) {
 	for _, d := range diags {
 		file, line, col, offset := d.Location().FileLocation()
