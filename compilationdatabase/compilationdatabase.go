@@ -224,66 +224,91 @@ func (c *CompilationDatabase) formatFlag(cmd clang.CompileCommand) []string {
 	flags := make([]string, 0, n)
 
 	for i := uint32(0); i < n; i++ {
-		f := cmd.Arg(i)
 		dir := cmd.Directory()
-		switch {
-		case f == "-D", // <macroname>=<value>: Adds an implicit #define into the predefines buffer which is read before the source file is preprocessed
-			f == "-U",         // <macroname>: Adds an implicit #undef into the predefines buffer which is read before the source file is preprocessed
-			f == "-isysroot",  // <dir>: Add directory to SYSTEM include search path
-			f == "-framework": // <name>: Tells the linker to search for `name.framework/name' the framework search path
+		f := cmd.Arg(i)
 
-			flags = append(flags, f, cmd.Arg(i+1))
+		switch {
+		case f == "-I", // <value>: Specified directory to the search path for include files
+			f == "-F",                 // <directory>: Specified directory to the search path for framework include files
+			f == "-D",                 // <macroname>=<value>: Adds an implicit #define into the predefines buffer which is read before the source file is preprocessed
+			f == "-U",                 // <macroname>: Adds an implicit #undef into the predefines buffer which is read before the source file is preprocessed
+			f == "-framework",         // <name>: Tells the linker to search for `name.framework/name' the framework search path
+			f == "-x",                 // <language> Treat subsequent input files as having type language.
+			f == "-arch",              // <architecture> Specify the architecture to build for.
+			f == "-include",           // <file>: Adds an implicit #include into the predefines buffer which is read before the source file is preprocessed
+			f == "-isysroot",          // <dir>: Add directory to SYSTEM include search path
+			f == "-isystem",           // <directory>: Set the system root directory (usually /)
+			f == "-iframework",        // <value>: Add directory to SYSTEM framework search path
+			f == "-include-pch",       // <file>: Include precompiled header file
+			f == "-isystem-after",     // <directory>: Add directory to end of the SYSTEM include search path
+			f == "-idirafter",         // <value>: Add directory to AFTER include search path
+			f == "-imacros",           // <file>: Include macros from file before parsing
+			f == "-ivfsoverlay",       // <value>: Overlay the virtual filesystem described by file over the real file system
+			f == "-iwithprefix",       // <dir>: Set directory to SYSTEM include search path with prefix
+			f == "-iwithprefixbefore", // <dir>: Set directory to include search path with prefix
+			f == "-iwithsysroot":      // <directory>: Add directory to SYSTEM include search path, absolute paths are relative to -isysroot
+			flags = append(flags, f, c.fixArg(cmd.Arg(i+1), dir))
+
+		case strings.HasPrefix(f, "-I"): // <value>: Specified directory to the search path for include files
+			includeDir := c.fixArg(strings.TrimPrefix(f, "-I"), dir)
+			flags = append(flags, "-I", includeDir)
+
+		case strings.HasPrefix(f, "-F"): // <directory>: Specified directory to the search path for framework include files
+			frameworkDir := c.fixArg(strings.TrimPrefix(f, "-F"), dir)
+			flags = append(flags, "-F", frameworkDir)
 
 		case strings.HasPrefix(f, "-D"), // <macroname>=<value>: Adds an implicit #define into the predefines buffer which is read before the source file is preprocessed
 			strings.HasPrefix(f, "-U"),                     // <macroname>: Adds an implicit #undef into the predefines buffer which is read before the source file is preprocessed
 			strings.HasPrefix(f, "-std"),                   // <language>: Specify the language standard
 			strings.HasPrefix(f, "-stdlib"),                // <library>: Specify the C++ standard library to use
+			strings.HasPrefix(f, "-x"),                     // <language> Treat subsequent input files as having type language.
+			strings.HasPrefix(f, "-arch"),                  // <architecture> Specify the architecture to build for.
 			strings.HasPrefix(f, "-mmacosx-version-min"),   // <version>: Specify the minimum version supported by your application when building for macOS
-			strings.HasPrefix(f, "-miphoneos-version-min"): // <version>: Specify the minimum version supported by your application when building for iPhone OS
+			strings.HasPrefix(f, "-miphoneos-version-min"), // <version>: Specify the minimum version supported by your application when building for iPhone OS
+			strings.HasPrefix(f, "-include"),               // <file>: Adds an implicit #include into the predefines buffer which is read before the source file is preprocessed
+			strings.HasPrefix(f, "-isysroot"),              // <dir>: Add directory to SYSTEM include search path
+			strings.HasPrefix(f, "-isystem"),               // <directory>: Set the system root directory (usually /)
+			strings.HasPrefix(f, "-iframework"),            // <value>: Add directory to SYSTEM framework search path
+			strings.HasPrefix(f, "-include-pch"),           // <file>: Include precompiled header file
+			strings.HasPrefix(f, "-isystem-after"),         // <directory>: Add directory to end of the SYSTEM include search path
+			strings.HasPrefix(f, "-G"),
+			strings.HasPrefix(f, "-T"),
+			strings.HasPrefix(f, "-V"),
+			strings.HasPrefix(f, "-target"),
+			strings.HasPrefix(f, "-Xanalyzer"),
+			strings.HasPrefix(f, "-Xassembler"),
+			strings.HasPrefix(f, "-Xclang"),
+			strings.HasPrefix(f, "-Xlinker"),
+			strings.HasPrefix(f, "-Xpreprocessor"),
+			strings.HasPrefix(f, "-b"),
+			strings.HasPrefix(f, "-gcc-toolchain"),
+			strings.HasPrefix(f, "-idirafter"), // <value>: Add directory to AFTER include search path
+			strings.HasPrefix(f, "-imacros"),   // <file>: Include macros from file before parsing
+			strings.HasPrefix(f, "-imultilib"),
+			strings.HasPrefix(f, "-iprefix"),
+			strings.HasPrefix(f, "-ivfsoverlay"),       // <value>: Overlay the virtual filesystem described by file over the real file system
+			strings.HasPrefix(f, "-iwithprefix"),       // <dir>: Set directory to SYSTEM include search path with prefix
+			strings.HasPrefix(f, "-iwithprefixbefore"), // <dir>: Set directory to include search path with prefix
+			strings.HasPrefix(f, "-iwithsysroot"):      // <directory>: Add directory to SYSTEM include search path, absolute paths are relative to -isysroot
 
 			flags = append(flags, f)
-
-		case f == "-I", // <value>: Specified directory to the search path for include files
-			f == "-F",                 // <directory>: Specified directory to the search path for framework include files
-			f == "-idirafter",         // <value>: Add directory to AFTER include search path
-			f == "-iframework",        // <value>: Add directory to SYSTEM framework search path
-			f == "-imacros",           // <file>: Include macros from file before parsing
-			f == "-include-pch",       // <file>: Include precompiled header file
-			f == "-include",           // <file>: Adds an implicit #include into the predefines buffer which is read before the source file is preprocessed
-			f == "-isystem-after",     // <directory>: Add directory to end of the SYSTEM include search path
-			f == "-isystem",           // <directory>: Set the system root directory (usually /)
-			f == "-ivfsoverlay",       // <value>: Overlay the virtual filesystem described by file over the real file system
-			f == "-iwithprefixbefore", // <dir>: Set directory to include search path with prefix
-			f == "-iwithprefix",       // <dir>: Set directory to SYSTEM include search path with prefix
-			f == "-iwithsysroot":      // <directory>: Add directory to SYSTEM include search path, absolute paths are relative to -isysroot
-
-			includeDir := c.absPath(cmd.Arg(i+1), dir)
-			flags = append(flags, f, includeDir)
-
-		case strings.HasPrefix(f, "-I"): // <value>: Specified directory to the search path for include files
-			includeDir := c.absPath(strings.TrimPrefix(f, "-I"), dir)
-			flags = append(flags, "-I", includeDir)
-
-		case strings.HasPrefix(f, "-F"): // <directory>: Specified directory to the search path for framework include files
-			includeDir := c.absPath(strings.TrimPrefix(f, "-F"), dir)
-			flags = append(flags, "-F", includeDir)
 		}
 	}
 
 	return flags
 }
 
-// absPath return the absolube directory path based by buildDir.
-func (c *CompilationDatabase) absPath(includePath, buildDir string) string {
-	if filepath.IsAbs(includePath) {
-		return includePath
+// fixArg return the absolube directory path based by buildDir if contains filepath.Separator.
+func (c *CompilationDatabase) fixArg(arg, buildDir string) string {
+	if !strings.Contains(string(filepath.Separator), arg) || filepath.IsAbs(arg) {
+		return arg
 	}
 
 	for _, d := range []string{buildDir, c.root} {
-		if dir := filepath.Join(d, includePath); pathutil.IsExist(dir) {
+		if dir := filepath.Join(d, arg); pathutil.IsExist(dir) {
 			return dir
 		}
 	}
 
-	return includePath
+	return arg
 }
