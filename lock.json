@@ -28,7 +28,7 @@
         {
             "name": "github.com/google/flatbuffers",
             "branch": "master",
-            "revision": "f9055ff9a79edcf830bf5d7d11c7d321e439b7ad",
+            "revision": "d7ba17dfe5b07e9197dd6bb3ed07c38e6a4a4da7",
             "packages": [
                 "go"
             ]
@@ -52,7 +52,7 @@
         {
             "name": "github.com/sirupsen/logrus",
             "branch": "master",
-            "revision": "61e43dc76f7ee59a82bdf3d71033dc12bea4c77d",
+            "revision": "3f603f494d61c73457fb234161d8982b9f0f0b71",
             "packages": [
                 "."
             ]
@@ -84,7 +84,7 @@
         {
             "name": "golang.org/x/net",
             "branch": "master",
-            "revision": "f2499483f923065a842d38eb4c7f1927e6fc6e6d",
+            "revision": "236b8f043b920452504e263bc21d354427127473",
             "packages": [
                 "context",
                 "http2",
@@ -95,7 +95,7 @@
         {
             "name": "golang.org/x/sys",
             "branch": "master",
-            "revision": "d75a52659825e75fff6158388dddc6a5b04f9ba5",
+            "revision": "7a6e5648d140666db5d920909e082ca00a87ba2c",
             "packages": [
                 "unix"
             ]
@@ -103,7 +103,7 @@
         {
             "name": "google.golang.org/grpc",
             "branch": "master",
-            "revision": "21f8ed309495401e6fd79b3a9fd549582aed1b4c",
+            "revision": "9b791e0ea399a912e17e176e5de6e7ac7d8c15ff",
             "packages": [
                 "."
             ]
