@@ -24,7 +24,7 @@ import (
 	"github.com/zchee/clang-server/symbol"
 )
 
-// clangOption global clang options.
+// defaultClangOption defalut global clang options.
 // clang.TranslationUnit_DetailedPreprocessingRecord = 0x01
 // clang.TranslationUnit_Incomplete = 0x02
 // clang.TranslationUnit_PrecompiledPreamble = 0x04
@@ -35,11 +35,17 @@ import (
 // clang.TranslationUnit_IncludeBriefCommentsInCodeCompletion = 0x80
 // clang.TranslationUnit_CreatePreambleOnFirstParse = 0x100
 // clang.TranslationUnit_KeepGoing = 0x200
-const clangOption uint32 = 0x445 // use all flags
+const defaultClangOption uint32 = 0x445 // Use all flags for now
+
+func init() {
+	// for debug
+	log.SetFlags(log.Lshortfile)
+}
 
 // Parser represents a C/C++ AST parser.
 type Parser struct {
-	root string
+	root        string
+	clangOption uint32
 
 	idx clang.Index
 	cd  *compilationdatabase.CompilationDatabase
@@ -47,9 +53,8 @@ type Parser struct {
 
 	mu sync.Mutex
 
-	// for debug
-	debugUncatched bool
-	uncachedKind   map[clang.CursorKind]int
+	debugUncatched bool                     // for debug
+	uncachedKind   map[clang.CursorKind]int // for debug
 }
 
 // Config represents a parser config.
@@ -61,8 +66,42 @@ type Config struct {
 	Debug bool
 }
 
-func init() {
-	log.SetFlags(log.Lshortfile)
+// NewParser return the new Parser.
+func NewParser(path string, config Config) *Parser {
+	root, err := pathutil.FindProjectRoot(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cd := compilationdatabase.NewCompilationDatabase(root)
+	if err := cd.Parse(config.JSONName, config.PathRange); err != nil {
+		log.Fatal(err)
+	}
+
+	db, err := indexdb.NewIndexDB(root)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	clangOption := config.ClangOption
+	if clangOption == 0 {
+		clangOption = defaultClangOption
+	}
+
+	p := &Parser{
+		root:        root,
+		clangOption: clangOption,
+		idx:         clang.NewIndex(0, 1), // disable excludeDeclarationsFromPCH, enable displayDiagnostics
+		cd:          cd,
+		db:          db,
+	}
+
+	if config.Debug {
+		p.debugUncatched = true
+		p.uncachedKind = make(map[clang.CursorKind]int)
+	}
+
+	return p
 }
 
 // CreateBulitinHeaders creates(dumps) a clang builtin header to cache directory.
@@ -88,50 +127,6 @@ func CreateBulitinHeaders() error {
 			return errors.WithStack(err)
 		}
 	}
-	return nil
-}
-
-// NewParser return the new Parser.
-func NewParser(path string, config *Config) *Parser {
-	root, err := pathutil.FindProjectRoot(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cd := compilationdatabase.NewCompilationDatabase(root)
-	if err := cd.Parse(config.JSONName, config.PathRange); err != nil {
-		log.Fatal(err)
-	}
-
-	db, err := indexdb.NewIndexDB(root)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	p := &Parser{
-		root: root,
-		idx:  clang.NewIndex(0, 1), // disable excludeDeclarationsFromPCH, enable displayDiagnostics
-		cd:   cd,
-		db:   db,
-	}
-
-	if config.Debug {
-		p.debugUncatched = true
-		p.uncachedKind = make(map[clang.CursorKind]int)
-	}
-
-	return p
-}
-
-// Parse parses the projects C/C++ files.
-func (p *Parser) Parse() error {
-	if err := CreateBulitinHeaders(); err != nil {
-		return err
-	}
-	p.idx.SetGlobalOptions(clang.GlobalOpt_ThreadBackgroundPriorityForAll)
-	p.Walk()
-	log.Printf("done")
-
 	return nil
 }
 
@@ -172,10 +167,21 @@ func (p *Parser) Walk() {
 	wg.Wait()
 }
 
+// Parse parses the projects C/C++ files.
+func (p *Parser) Parse() error {
+	if err := CreateBulitinHeaders(); err != nil {
+		return err
+	}
+	p.idx.SetGlobalOptions(clang.GlobalOpt_ThreadBackgroundPriorityForAll)
+	p.Walk()
+	log.Printf("done")
+
+	return nil
+}
+
 // ParseFile parses the C/C++ file.
 func (p *Parser) ParseFile(filename string, flags []string) error {
 	var tu clang.TranslationUnit
-	var tubuf chan []byte
 
 	if p.db.Has(filename) {
 		// if p.has(filename) {
@@ -198,17 +204,13 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 		// }
 		return nil
 	} else {
-		if cErr := p.idx.ParseTranslationUnit2(filename, flags, nil, clangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
+		if cErr := p.idx.ParseTranslationUnit2(filename, flags, nil, p.clangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
 			return errors.New(clang.ErrorCode(cErr).Spelling())
 		}
-		go func() {
-			tubuf <- p.SerializeTranslationUnit(filename, tu)
-		}()
 	}
 	defer tu.Dispose()
 
 	// p.PrintDiagnostics(tu.Diagnostics())
-
 	symDB := NewSymbolDB(filename)
 	visitNode := func(cursor, parent clang.Cursor) clang.ChildVisitResult {
 		if cursor.IsNull() {
@@ -228,30 +230,30 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 			defCursor := cursor.Definition()
 			switch {
 			case defCursor.IsNull():
-				symDB.AddDecl(cursorLoc)
+				symDB.addDecl(cursorLoc)
 			default:
 				defLoc := symbol.FromCursor(&defCursor)
-				symDB.AddDefinition(cursorLoc, defLoc)
+				symDB.addDefinition(cursorLoc, defLoc)
 			}
 		case clang.Cursor_MacroDefinition:
-			symDB.AddDefinition(cursorLoc, cursorLoc)
+			symDB.addDefinition(cursorLoc, cursorLoc)
 		case clang.Cursor_VarDecl:
-			symDB.AddDecl(cursorLoc)
+			symDB.addDecl(cursorLoc)
 		case clang.Cursor_ParmDecl:
 			if cursor.Spelling() != "" {
-				symDB.AddDecl(cursorLoc)
+				symDB.addDecl(cursorLoc)
 			}
 		case clang.Cursor_CallExpr:
 			refCursor := cursor.Referenced()
 			refLoc := symbol.FromCursor(&refCursor)
-			symDB.AddCaller(cursorLoc, refLoc, true)
+			symDB.addCaller(cursorLoc, refLoc, true)
 		case clang.Cursor_DeclRefExpr, clang.Cursor_TypeRef, clang.Cursor_MemberRefExpr, clang.Cursor_MacroExpansion:
 			refCursor := cursor.Referenced()
 			refLoc := symbol.FromCursor(&refCursor)
-			symDB.AddCaller(cursorLoc, refLoc, false)
+			symDB.addCaller(cursorLoc, refLoc, false)
 		case clang.Cursor_InclusionDirective:
 			incFile := cursor.IncludedFile()
-			symDB.AddHeader(cursor.Spelling(), incFile)
+			symDB.addHeader(cursor.Spelling(), incFile)
 		default:
 			if p.debugUncatched {
 				p.uncachedKind[kind]++
@@ -265,12 +267,12 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 
 	log.Printf("done: filename: %+v\n", filename)
 
-	return p.db.Put(filename, <-tubuf)
+	return p.db.Put(filename, []byte{})
 }
 
-// SerializeTranslationUnit selialize the TranslationUnit to Clang serialized representation.
+// serializeTranslationUnit selialize the TranslationUnit to Clang serialized representation.
 // TODO(zchee): Avoid ioutil.TempFile, get directly if possible.
-func (p *Parser) SerializeTranslationUnit(filename string, tu clang.TranslationUnit) []byte {
+func (p *Parser) serializeTranslationUnit(filename string, tu clang.TranslationUnit) []byte {
 	tmpFile, err := ioutil.TempFile(os.TempDir(), filepath.Base(filename))
 	if err != nil {
 		log.Fatal(err)
@@ -290,7 +292,7 @@ func (p *Parser) SerializeTranslationUnit(filename string, tu clang.TranslationU
 }
 
 // PrintDiagnostics prints a diagnostics information.
-func (p *Parser) PrintDiagnostics(diags []clang.Diagnostic) {
+func (p *Parser) printDiagnostics(diags []clang.Diagnostic) {
 	for _, d := range diags {
 		file, line, col, offset := d.Location().FileLocation()
 		fmt.Println("Location:", file.Name(), line, col, offset)
@@ -332,18 +334,18 @@ func (s *SymbolDB) addSymbol(sym, def *symbol.Location) {
 	s.db.Symbols[s.name] = syms
 }
 
-// AddDecl add decl data into SymbolDB.
-func (s *SymbolDB) AddDecl(sym *symbol.Location) {
+// addDecl add decl data into SymbolDB.
+func (s *SymbolDB) addDecl(sym *symbol.Location) {
 	s.addSymbol(sym, nil)
 }
 
-// AddDefinition add definition data into SymbolDB.
-func (s *SymbolDB) AddDefinition(sym, def *symbol.Location) {
+// addDefinition add definition data into SymbolDB.
+func (s *SymbolDB) addDefinition(sym, def *symbol.Location) {
 	s.addSymbol(sym, def)
 }
 
-// AddCaller add caller data into SymbolDB.
-func (s *SymbolDB) AddCaller(sym, def *symbol.Location, funcCall bool) {
+// addCaller add caller data into SymbolDB.
+func (s *SymbolDB) addCaller(sym, def *symbol.Location, funcCall bool) {
 	syms, ok := s.db.Symbols[s.name]
 	if !ok {
 		syms = new(symbol.Symbol)
@@ -363,8 +365,8 @@ func notExistHeaderName(headPath string) string {
 	return "IDoNotReallyExist-" + filepath.Base(headPath)
 }
 
-// AddHeader add header data into SymbolDB.
-func (s *SymbolDB) AddHeader(includePath string, headerFile clang.File) {
+// addHeader add header data into SymbolDB.
+func (s *SymbolDB) addHeader(includePath string, headerFile clang.File) {
 	hdr := new(symbol.Header)
 	if headerFile.Name() == "" {
 		hdr.File = symbol.ToFileID(notExistHeaderName(filepath.Clean(headerFile.Name())))
