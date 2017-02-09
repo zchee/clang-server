@@ -19,7 +19,7 @@ func main() {
 
 	fmt.Printf("clang version: %s\n", parser.ClangVersion())
 
-	config := &parser.Config{}
+	config := parser.Config{}
 	if *path != "" {
 		p := parser.NewParser(*path, config)
 		if err := p.Parse(); err != nil {
