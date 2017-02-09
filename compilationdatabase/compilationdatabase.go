@@ -228,6 +228,14 @@ func (c *CompilationDatabase) formatFlag(cmd clang.CompileCommand) []string {
 		f := cmd.Arg(i)
 
 		switch {
+		case strings.HasPrefix(f, "-I"): // <value>: Specified directory to the search path for include files
+			includeDir := c.fixArg(strings.TrimPrefix(f, "-I"), dir)
+			flags = append(flags, "-I", includeDir)
+
+		case strings.HasPrefix(f, "-F"): // <directory>: Specified directory to the search path for framework include files
+			frameworkDir := c.fixArg(strings.TrimPrefix(f, "-F"), dir)
+			flags = append(flags, "-F", frameworkDir)
+
 		case f == "-I", // <value>: Specified directory to the search path for include files
 			f == "-F",                 // <directory>: Specified directory to the search path for framework include files
 			f == "-D",                 // <macroname>=<value>: Adds an implicit #define into the predefines buffer which is read before the source file is preprocessed
@@ -248,14 +256,6 @@ func (c *CompilationDatabase) formatFlag(cmd clang.CompileCommand) []string {
 			f == "-iwithprefixbefore", // <dir>: Set directory to include search path with prefix
 			f == "-iwithsysroot":      // <directory>: Add directory to SYSTEM include search path, absolute paths are relative to -isysroot
 			flags = append(flags, f, c.fixArg(cmd.Arg(i+1), dir))
-
-		case strings.HasPrefix(f, "-I"): // <value>: Specified directory to the search path for include files
-			includeDir := c.fixArg(strings.TrimPrefix(f, "-I"), dir)
-			flags = append(flags, "-I", includeDir)
-
-		case strings.HasPrefix(f, "-F"): // <directory>: Specified directory to the search path for framework include files
-			frameworkDir := c.fixArg(strings.TrimPrefix(f, "-F"), dir)
-			flags = append(flags, "-F", frameworkDir)
 
 		case strings.HasPrefix(f, "-D"), // <macroname>=<value>: Adds an implicit #define into the predefines buffer which is read before the source file is preprocessed
 			strings.HasPrefix(f, "-U"),                     // <macroname>: Adds an implicit #undef into the predefines buffer which is read before the source file is preprocessed
@@ -300,7 +300,7 @@ func (c *CompilationDatabase) formatFlag(cmd clang.CompileCommand) []string {
 
 // fixArg return the absolube directory path based by buildDir if contains filepath.Separator.
 func (c *CompilationDatabase) fixArg(arg, buildDir string) string {
-	if !strings.Contains(string(filepath.Separator), arg) || filepath.IsAbs(arg) {
+	if filepath.IsAbs(arg) {
 		return arg
 	}
 
