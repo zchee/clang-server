@@ -213,10 +213,10 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 		// 	return errors.New(clang.ErrorCode(cErr).Spelling())
 		// }
 		return nil
-	} else {
-		if cErr := p.idx.ParseTranslationUnit2(filename, flags, nil, p.clangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
-			return errors.New(clang.ErrorCode(cErr).Spelling())
-		}
+	}
+
+	if cErr := p.idx.ParseTranslationUnit2(filename, flags, nil, p.clangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
+		return errors.New(clang.ErrorCode(cErr).Spelling())
 	}
 	defer tu.Dispose()
 
