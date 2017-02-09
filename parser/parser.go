@@ -129,14 +129,14 @@ func (p *Parser) Parse() error {
 		return err
 	}
 	p.idx.SetGlobalOptions(clang.GlobalOpt_ThreadBackgroundPriorityForAll)
-	p.Walk(p.root)
+	p.Walk()
 	log.Printf("done")
 
 	return nil
 }
 
 // Walk walk project directories.
-func (p *Parser) Walk(root string) {
+func (p *Parser) Walk() {
 	ccs := p.cd.CompileCommands()
 	if len(ccs) == 0 {
 		log.Fatal("not walk")
