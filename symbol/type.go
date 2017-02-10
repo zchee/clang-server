@@ -18,8 +18,8 @@ import (
 // File represents a C/C++ file.
 //
 // table File {
-//   FileName: string (required, key);
-//   TranslationUnit: string;
+//   FileName: string (required, key); // -> []byte
+//   TranslationUnit: string; // -> []byte
 //   SymbolDatabase: SymbolDatabase;
 // }
 type File struct {
@@ -29,35 +29,35 @@ type File struct {
 	file            *symbol.File
 }
 
-func GetRootAsFile(buf []byte, offset flatbuffers.UOffsetT) *File {
+func getRootAsFile(buf []byte, offset flatbuffers.UOffsetT) *File {
 	return &File{file: symbol.GetRootAsFile(buf, offset)}
 }
 
-func (f *File) Init(buf []byte) {
+func (f *File) init(buf []byte) {
 	f.file.Init(buf, flatbuffers.GetUOffsetT(buf))
 }
 
-func (f *File) Table() flatbuffers.Table {
+func (f *File) table() flatbuffers.Table {
 	return f.file.Table()
 }
 
-func (f *File) GetFileName() []byte {
+func (f *File) getFileName() []byte {
 	return f.file.FileName()
 }
 
-func (f *File) GetSymbolDatabase() *SymbolDatabase {
+func (f *File) getSymbolDatabase() *SymbolDatabase {
 	obj := new(symbol.SymbolDatabase)
 	f.file.SymbolDatabase(obj)
 	return &SymbolDatabase{symbolDB: obj}
 }
 
-func (f *File) GetTranslationUnit() []byte {
+func (f *File) getTranslationUnit() []byte {
 	return f.file.TranslationUnit()
 }
 
 // serialize
 
-func CreateFile(builder *flatbuffers.Builder, filename string, translationUnit []byte, symbolDB flatbuffers.UOffsetT) flatbuffers.UOffsetT {
+func createFile(builder *flatbuffers.Builder, filename string, translationUnit []byte, symbolDB flatbuffers.UOffsetT) []byte {
 	f := builder.CreateString(filename)
 	tu := builder.CreateByteString(translationUnit)
 
@@ -67,7 +67,9 @@ func CreateFile(builder *flatbuffers.Builder, filename string, translationUnit [
 	symbol.FileAddTranslationUnit(builder, tu)
 	symbol.FileAddFileName(builder, f)
 
-	return symbol.FileEnd(builder)
+	symbol.FileEnd(builder)
+
+	return builder.FinishedBytes()
 }
 
 // deserialize
@@ -79,30 +81,30 @@ func CreateFile(builder *flatbuffers.Builder, filename string, translationUnit [
 // table SymbolDatabase {
 //   Symbols: [Symbol] (id: 0);
 //   Headers: [Header] (id: 1);
-//   Includes: [string] (id: 2);
+//   Includes: [string] (id: 2); // -> [][]byte
 //   LastModified: long (id : 3); // time.Time.Unix(): int64
 // }
 type SymbolDatabase struct {
-	Symbols      map[string]*Symbol
+	Symbols      map[ID]*Symbol
 	Headers      []*Header
 	Includes     []string
 	LastModified time.Time
 	symbolDB     *symbol.SymbolDatabase
 }
 
-func GetRootAsSymbolDatabase(buf []byte, offset flatbuffers.UOffsetT) *SymbolDatabase {
+func getRootAsSymbolDatabase(buf []byte, offset flatbuffers.UOffsetT) *SymbolDatabase {
 	return &SymbolDatabase{symbolDB: symbol.GetRootAsSymbolDatabase(buf, offset)}
 }
 
-func (sd *SymbolDatabase) Init(buf []byte) {
+func (sd *SymbolDatabase) init(buf []byte) {
 	sd.symbolDB.Init(buf, flatbuffers.GetUOffsetT(buf))
 }
 
-func (sd *SymbolDatabase) Table() flatbuffers.Table {
+func (sd *SymbolDatabase) table() flatbuffers.Table {
 	return sd.symbolDB.Table()
 }
 
-func (sd *SymbolDatabase) Symbol(i int) *Symbol {
+func (sd *SymbolDatabase) symbol(i int) *Symbol {
 	obj := new(symbol.Symbol)
 	if sd.symbolDB.SymbolsLength() <= i || !sd.symbolDB.Symbols(obj, i) {
 		return nil
@@ -110,7 +112,7 @@ func (sd *SymbolDatabase) Symbol(i int) *Symbol {
 	return &Symbol{sym: obj}
 }
 
-func (sd *SymbolDatabase) Header(i int) *Header {
+func (sd *SymbolDatabase) header(i int) *Header {
 	obj := new(symbol.Header)
 	if sd.symbolDB.HeadersLength() <= i || !sd.symbolDB.Headers(obj, i) {
 		return nil
@@ -118,39 +120,60 @@ func (sd *SymbolDatabase) Header(i int) *Header {
 	return &Header{header: obj}
 }
 
-func (sd *SymbolDatabase) HeadersLength() int {
+func (sd *SymbolDatabase) headersLength() int {
 	return sd.symbolDB.HeadersLength()
 }
 
-func (sd *SymbolDatabase) Include(i int) []byte {
+func (sd *SymbolDatabase) include(i int) []byte {
 	if sd.symbolDB.IncludesLength() <= i {
 		return nil
 	}
 	return sd.symbolDB.Includes(i)
 }
 
-func (sd *SymbolDatabase) IncludesLength() int {
+func (sd *SymbolDatabase) includesLength() int {
 	return sd.symbolDB.IncludesLength()
 }
 
-func (sd *SymbolDatabase) ModifyTime() int64 {
+func (sd *SymbolDatabase) modifyTime() int64 {
 	return sd.symbolDB.Mtime()
 }
 
 // serialize
 
-func CreateSymbolDatabase(builder *flatbuffers.Builder, symbols, headers, includes flatbuffers.UOffsetT, mtime time.Time) flatbuffers.UOffsetT {
+func createSymbolDatabase(builder *flatbuffers.Builder, symbols, headers, includes []flatbuffers.UOffsetT, mtime time.Time) flatbuffers.UOffsetT {
+	n := len(includes)
+	symbol.SymbolDatabaseStartIncludesVector(builder, n) // includes: []string
+	for i := n - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(includes[i])
+	}
+	includesVecOffset := builder.EndVector(n)
+
+	n = len(headers)
+	symbol.SymbolDatabaseStartHeadersVector(builder, n) // header: []symbol.Header
+	for i := n - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(headers[i])
+	}
+	headersVecOffset := builder.EndVector(n)
+
+	n = len(symbols)
+	symbol.SymbolDatabaseStartSymbolsVector(builder, n) // symbols: []symbol.Symbol
+	for i := n - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(symbols[i])
+	}
+	symbolsVecOffset := builder.EndVector(n)
+
 	symbol.SymbolDatabaseStart(builder)
 
 	symbol.SymbolDatabaseAddMtime(builder, mtime.Unix())
-	symbol.SymbolDatabaseAddIncludes(builder, includes) // includes: []string
-	symbol.SymbolDatabaseAddHeaders(builder, headers)   // header: []symbol.Header
-	symbol.SymbolDatabaseAddSymbols(builder, symbols)   // symbols: []symbol.Symbol
+	symbol.SymbolDatabaseAddIncludes(builder, includesVecOffset)
+	symbol.SymbolDatabaseAddHeaders(builder, headersVecOffset)
+	symbol.SymbolDatabaseAddSymbols(builder, symbolsVecOffset)
 
 	return symbol.SymbolDatabaseEnd(builder)
 }
 
-func CreateIncludes(builder *flatbuffers.Builder, includes []string) flatbuffers.UOffsetT {
+func createIncludes(builder *flatbuffers.Builder, includes []string) flatbuffers.UOffsetT {
 	includeVector := []flatbuffers.UOffsetT{}
 	for _, include := range includes {
 		filename := builder.CreateString(include)
@@ -166,14 +189,12 @@ func CreateIncludes(builder *flatbuffers.Builder, includes []string) flatbuffers
 	return builder.EndVector(n)
 }
 
-// deserialize
-
 // ----------------------------------------------------------------------------
 
 // Symbol represents a location of C/C++ cursor symbol.
 //
 // table Symbol {
-//   ID: string (id: 0, required, key);
+//   ID: string (id: 0, required, key); // -> []byte
 //   Definition: Location (id: 1);
 //   Decls: [Location] (id: 2);
 //   Callers: [Caller] (id: 3);
@@ -186,37 +207,37 @@ type Symbol struct {
 	sym     *symbol.Symbol
 }
 
-func GetRootAsSymbol(buf []byte, offset flatbuffers.UOffsetT) *Symbol {
+func getRootAsSymbol(buf []byte, offset flatbuffers.UOffsetT) *Symbol {
 	return &Symbol{sym: symbol.GetRootAsSymbol(buf, offset)}
 }
 
-func (s *Symbol) Init(buf []byte) {
+func (s *Symbol) init(buf []byte) {
 	s.sym.Init(buf, flatbuffers.GetUOffsetT(buf))
 }
 
-func (s *Symbol) Table() flatbuffers.Table {
+func (s *Symbol) table() flatbuffers.Table {
 	return s.sym.Table()
 }
 
-func (s *Symbol) SymbolID() []byte {
+func (s *Symbol) symbolID() []byte {
 	return s.sym.ID()
 }
 
-func (s *Symbol) Definition() *Location {
+func (s *Symbol) definition() *Location {
 	loc := new(symbol.Location)
 	loc = s.sym.Definition(loc)
 
 	return &Location{location: loc}
 }
 
-func (s *Symbol) Decl(obj *symbol.Location, i int) *Location {
+func (s *Symbol) decl(obj *symbol.Location, i int) *Location {
 	if s.sym.DeclsLength() <= i || !s.sym.Decls(obj, i) {
 		return nil
 	}
 	return &Location{location: obj}
 }
 
-func (s *Symbol) Caller(obj *symbol.Caller, i int) *Caller {
+func (s *Symbol) caller(obj *symbol.Caller, i int) *Caller {
 	if s.sym.CallersLength() <= i || !s.sym.Callers(obj, i) {
 		return nil
 	}
@@ -225,8 +246,8 @@ func (s *Symbol) Caller(obj *symbol.Caller, i int) *Caller {
 
 // serialize
 
-func CreateSymbol(builder *flatbuffers.Builder, id string, def flatbuffers.UOffsetT, decls, callers []flatbuffers.UOffsetT) flatbuffers.UOffsetT {
-	fbsID := builder.CreateString(id)
+func createSymbol(builder *flatbuffers.Builder, id ID, def flatbuffers.UOffsetT, decls, callers []flatbuffers.UOffsetT) flatbuffers.UOffsetT {
+	fbsID := builder.CreateByteString(id.Bytes())
 
 	n := len(decls)
 	symbol.SymbolStartDeclsVector(builder, n)
@@ -252,7 +273,7 @@ func CreateSymbol(builder *flatbuffers.Builder, id string, def flatbuffers.UOffs
 	return symbol.SymbolEnd(builder)
 }
 
-func CreateDecls(builder *flatbuffers.Builder, src []*Location) []flatbuffers.UOffsetT {
+func createDecls(builder *flatbuffers.Builder, src []*Location) []flatbuffers.UOffsetT {
 	var decls []flatbuffers.UOffsetT
 
 	for i := 0; i < len(src); i++ {
@@ -273,13 +294,13 @@ func CreateDecls(builder *flatbuffers.Builder, src []*Location) []flatbuffers.UO
 
 // deserialize
 
-func (s *Symbol) GetDecls() map[FileID]*Location {
+func (s *Symbol) getDecls() map[FileID]*Location {
 	n := s.sym.DeclsLength()
 	decls := make(map[FileID]*Location)
 	obj := new(symbol.Location)
 
 	for i := 0; i < n; i++ {
-		decl := s.Decl(obj, i)
+		decl := s.decl(obj, i)
 		fid := ToFileID(string(decl.location.File()))
 		decls[fid] = decl
 	}
@@ -287,13 +308,13 @@ func (s *Symbol) GetDecls() map[FileID]*Location {
 	return decls
 }
 
-func (s *Symbol) GetCallers() []*Caller {
+func (s *Symbol) getCallers() []*Caller {
 	n := s.sym.CallersLength()
 	callers := make([]*Caller, n)
 
 	obj := new(symbol.Caller)
 	for i := 0; i < n; i++ {
-		callers[i] = s.Caller(obj, i)
+		callers[i] = s.caller(obj, i)
 	}
 
 	return callers
@@ -334,8 +355,8 @@ func (s *Symbol) marshal() ([]byte, error) {
 // Header represents a location of include header file.
 //
 // table Header {
-//   FileID: string (id: 0, required, key);
-//   Mtime: long (id: 1);
+//   FileID: string (id: 0, required, key); // -> []byte
+//   Mtime: long (id: 1); // time.Time.Unix(): int64
 // }
 type Header struct {
 	File   FileID
@@ -343,23 +364,23 @@ type Header struct {
 	header *symbol.Header
 }
 
-func GetRootAsHeader(buf []byte, offset flatbuffers.UOffsetT) *Header {
+func getRootAsHeader(buf []byte, offset flatbuffers.UOffsetT) *Header {
 	return &Header{header: symbol.GetRootAsHeader(buf, offset)}
 }
 
-func (h *Header) Init(buf []byte) {
+func (h *Header) init(buf []byte) {
 	h.header.Init(buf, flatbuffers.GetUOffsetT(buf))
 }
 
-func (h *Header) Table() flatbuffers.Table {
+func (h *Header) table() flatbuffers.Table {
 	return h.header.Table()
 }
 
-func (h *Header) FileID() []byte {
+func (h *Header) fileID() []byte {
 	return h.header.FileID()
 }
 
-func (h *Header) ModifyTime() int64 {
+func (h *Header) modifyTime() int64 {
 	return h.header.Mtime()
 }
 
@@ -381,7 +402,7 @@ func CreateHeader(builder *flatbuffers.Builder, fileID []byte, mtime time.Time) 
 //
 // table Caller {
 //   Location: Location (required);
-//   FuncCall: bool = false;
+//   FuncCall: bool = false; // -> byte
 // }
 type Caller struct {
 	Location *Location
@@ -389,29 +410,29 @@ type Caller struct {
 	caller   *symbol.Caller
 }
 
-func GetRootAsCaller(buf []byte, offset flatbuffers.UOffsetT) *Caller {
+func getRootAsCaller(buf []byte, offset flatbuffers.UOffsetT) *Caller {
 	return &Caller{caller: symbol.GetRootAsCaller(buf, offset)}
 }
 
-func (c *Caller) Init(buf []byte) {
+func (c *Caller) init(buf []byte) {
 	c.caller.Init(buf, flatbuffers.GetUOffsetT(buf))
 }
 
-func (c *Caller) Table() flatbuffers.Table {
+func (c *Caller) table() flatbuffers.Table {
 	return c.caller.Table()
 }
 
-func (c *Caller) IsFuncCall() bool {
+func (c *Caller) isFuncCall() bool {
 	return c.caller.FuncCall() != 0
 }
 
 // serialize
 
-func CreateCallers(builder *flatbuffers.Builder, src []Caller) []flatbuffers.UOffsetT {
+func createCallers(builder *flatbuffers.Builder, src []*Caller) []flatbuffers.UOffsetT {
 	var callers []flatbuffers.UOffsetT
 
 	for i := 0; i < len(src); i++ {
-		location := CreateLocation(builder, src[i].Location)
+		location := createLocation(builder, src[i].Location)
 		var fc byte
 		if src[i].FuncCall {
 			fc = byte(1)
@@ -430,10 +451,10 @@ func CreateCallers(builder *flatbuffers.Builder, src []Caller) []flatbuffers.UOf
 
 // deserialize
 
-func (c *Caller) GetLocation() (string, uint32, uint32) {
+func (c *Caller) getLocation() (string, uint32, uint32) {
 	obj := new(symbol.Location)
 	loc := &Location{location: c.caller.Location(obj)}
-	return loc.GetLocation()
+	return loc.getLocation()
 }
 
 // ----------------------------------------------------------------------------
@@ -441,7 +462,7 @@ func (c *Caller) GetLocation() (string, uint32, uint32) {
 // Location location of symbol.
 //
 // table Location {
-//   File: string (required);
+//   File: string (required); // -> []byte
 //   Line: uint;    // clang.SourceLocation.Line: uint32
 //   Col: uint = 0; // clang.SourceLocation.Col: uint32
 //   Offset: uint;  // clang.SourceLocation.Offset: uint32
@@ -456,21 +477,44 @@ type Location struct {
 	location *symbol.Location
 }
 
-func GetRootAsLocation(buf []byte, offset flatbuffers.UOffsetT) *Location {
+// FromCursor return the location of symbol from cursor.
+func FromCursor(cursor *clang.Cursor) *Location {
+	if cursor.IsNull() {
+		return nil
+	}
+
+	usr := cursor.USR()
+	if usr == "" && cursor.Kind() == clang.Cursor_MacroExpansion {
+		usr = cursor.DisplayName()
+	}
+
+	file, line, col, offset := cursor.Location().FileLocation()
+
+	return &Location{
+		File:   file.Name(),
+		FileID: ToFileID(file.Name()),
+		Line:   line,
+		Col:    col,
+		Offset: offset,
+		USR:    usr,
+	}
+}
+
+func getRootAsLocation(buf []byte, offset flatbuffers.UOffsetT) *Location {
 	return &Location{location: symbol.GetRootAsLocation(buf, offset)}
 }
 
-func (l *Location) Init(buf []byte) {
+func (l *Location) init(buf []byte) {
 	l.location.Init(buf, flatbuffers.GetUOffsetT(buf))
 }
 
-func (l *Location) Table() flatbuffers.Table {
+func (l *Location) table() flatbuffers.Table {
 	return l.location.Table()
 }
 
 // serialize
 
-func CreateLocation(builder *flatbuffers.Builder, src *Location) flatbuffers.UOffsetT {
+func createLocation(builder *flatbuffers.Builder, src *Location) flatbuffers.UOffsetT {
 	file := builder.CreateString(src.FileID.String())
 
 	symbol.LocationStart(builder)
@@ -485,7 +529,7 @@ func CreateLocation(builder *flatbuffers.Builder, src *Location) flatbuffers.UOf
 
 // deserialize
 
-func (l *Location) GetLocation() (string, uint32, uint32) {
+func (l *Location) getLocation() (string, uint32, uint32) {
 	return hashutil.UnsafeString(l.location.File()), l.location.Line(), l.location.Col()
 }
 
@@ -503,5 +547,5 @@ func (sd *SymbolDatabase) decode() ([]*symbol.Symbol, int64) {
 		}
 	}
 
-	return syms, sd.ModifyTime()
+	return syms, sd.modifyTime()
 }
