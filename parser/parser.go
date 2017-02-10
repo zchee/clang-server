@@ -13,10 +13,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/go-clang/v3.9/clang"
-	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/pkg/errors"
 	"github.com/zchee/clang-server/compilationdatabase"
 	"github.com/zchee/clang-server/indexdb"
@@ -240,30 +238,30 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 			defCursor := cursor.Definition()
 			switch {
 			case defCursor.IsNull():
-				symDB.addDecl(cursorLoc)
+				symbolDB.AddDecl(cursorLoc)
 			default:
 				defLoc := symbol.FromCursor(&defCursor)
-				symDB.addDefinition(cursorLoc, defLoc)
+				symbolDB.AddDefinition(cursorLoc, defLoc)
 			}
 		case clang.Cursor_MacroDefinition:
-			symDB.addDefinition(cursorLoc, cursorLoc)
+			symbolDB.AddDefinition(cursorLoc, cursorLoc)
 		case clang.Cursor_VarDecl:
-			symDB.addDecl(cursorLoc)
+			symbolDB.AddDecl(cursorLoc)
 		case clang.Cursor_ParmDecl:
 			if cursor.Spelling() != "" {
-				symDB.addDecl(cursorLoc)
+				symbolDB.AddDecl(cursorLoc)
 			}
 		case clang.Cursor_CallExpr:
 			refCursor := cursor.Referenced()
 			refLoc := symbol.FromCursor(&refCursor)
-			symDB.addCaller(cursorLoc, refLoc, true)
+			symbolDB.AddCaller(cursorLoc, refLoc, true)
 		case clang.Cursor_DeclRefExpr, clang.Cursor_TypeRef, clang.Cursor_MemberRefExpr, clang.Cursor_MacroExpansion:
 			refCursor := cursor.Referenced()
 			refLoc := symbol.FromCursor(&refCursor)
-			symDB.addCaller(cursorLoc, refLoc, false)
+			symbolDB.AddCaller(cursorLoc, refLoc, false)
 		case clang.Cursor_InclusionDirective:
 			incFile := cursor.IncludedFile()
-			symDB.addHeader(cursor.Spelling(), incFile)
+			symbolDB.AddHeader(cursor.Spelling(), incFile)
 		default:
 			if p.debugUncatched {
 				p.uncachedKind[kind]++
@@ -308,84 +306,6 @@ func (p *Parser) printDiagnostics(diags []clang.Diagnostic) {
 		fmt.Println("Location:", file.Name(), line, col, offset)
 		fmt.Println("PROBLEM:", d.Spelling())
 	}
-}
-
-// SymbolDB represents a symbol database.
-type SymbolDB struct {
-	name    string
-	builder *flatbuffers.Builder
-	db      *symbol.SymbolDatabase
-}
-
-// NewSymbolDB returnn the new SymbolDB.
-func NewSymbolDB(filename string) *SymbolDB {
-	db := &symbol.SymbolDatabase{
-		Symbols: make(map[string]*symbol.Symbol),
-	}
-	return &SymbolDB{
-		name:    filename,
-		builder: flatbuffers.NewBuilder(0),
-		db:      db,
-	}
-}
-
-// addSymbol adds the symbol data into SymbolDB.
-func (s *SymbolDB) addSymbol(sym, def *symbol.Location) {
-	syms, ok := s.db.Symbols[s.name]
-	if !ok {
-		syms = new(symbol.Symbol)
-	}
-	syms.Decls = append(syms.Decls, sym)
-
-	if def != nil {
-		syms.Def = def
-	}
-
-	s.db.Symbols[s.name] = syms
-}
-
-// addDecl add decl data into SymbolDB.
-func (s *SymbolDB) addDecl(sym *symbol.Location) {
-	s.addSymbol(sym, nil)
-}
-
-// addDefinition add definition data into SymbolDB.
-func (s *SymbolDB) addDefinition(sym, def *symbol.Location) {
-	s.addSymbol(sym, def)
-}
-
-// addCaller add caller data into SymbolDB.
-func (s *SymbolDB) addCaller(sym, def *symbol.Location, funcCall bool) {
-	syms, ok := s.db.Symbols[s.name]
-	if !ok {
-		syms = new(symbol.Symbol)
-	}
-
-	syms.Callers = append(syms.Callers, &symbol.Caller{
-		Location: sym,
-		FuncCall: funcCall,
-	})
-
-	s.db.Symbols[s.name] = syms
-}
-
-// notExisHeaderName return the not exist header name magic words.
-func notExistHeaderName(headPath string) string {
-	// adding magic to filename to not confuse it with real files
-	return "IDoNotReallyExist-" + filepath.Base(headPath)
-}
-
-// addHeader add header data into SymbolDB.
-func (s *SymbolDB) addHeader(includePath string, headerFile clang.File) {
-	hdr := new(symbol.Header)
-	if headerFile.Name() == "" {
-		hdr.File = symbol.ToFileID(notExistHeaderName(filepath.Clean(headerFile.Name())))
-		hdr.Mtime = time.Time{}
-	} else {
-		hdr.File = symbol.ToFileID(filepath.Clean(headerFile.Name()))
-		hdr.Mtime = headerFile.Time()
-	}
-	s.db.Headers = append(s.db.Headers, hdr)
 }
 
 // ClangVersion return the current clang version.
