@@ -9,70 +9,9 @@ import (
 
 	"github.com/go-clang/v3.9/clang"
 	flatbuffers "github.com/google/flatbuffers/go"
-	blake2b "github.com/minio/blake2b-simd"
 	"github.com/zchee/clang-server/internal/hashutil"
 	"github.com/zchee/clang-server/symbol/internal/symbol"
 )
-
-// ID id of cursor.USR with blake2b hash.
-type ID [blake2b.Size]byte
-
-func (id ID) String() string {
-	return hashutil.EncodeToString(id)
-}
-
-func (id ID) Bytes() []byte {
-	return id[:]
-}
-
-// FileID id of filename with blake2b hash.
-type FileID [blake2b.Size]byte
-
-func (id FileID) String() string {
-	return hashutil.EncodeToString(id)
-}
-
-func (id FileID) Bytes() []byte {
-	return id[:]
-}
-
-var (
-	NoID     ID     = [64]byte{} // empty
-	NoFileID FileID = [64]byte{} // empty
-)
-
-// ToID converts the string to blake2b sum512 hash.
-func ToID(s string) ID {
-	return hashutil.NewHashString(s)
-}
-
-// ToFileID converts the string to blake2b sum512 hash.
-func ToFileID(s string) FileID {
-	return hashutil.NewHashString(s)
-}
-
-// FromCursor return the location of symbol from cursor.
-func FromCursor(cursor *clang.Cursor) *Location {
-	if cursor.IsNull() {
-		return nil
-	}
-
-	usr := cursor.USR()
-	if usr == "" && cursor.Kind() == clang.Cursor_MacroExpansion {
-		usr = cursor.DisplayName()
-	}
-
-	file, line, col, offset := cursor.Location().FileLocation()
-
-	return &Location{
-		File:   file.Name(),
-		FileID: ToFileID(file.Name()),
-		Line:   line,
-		Col:    col,
-		Offset: offset,
-		USR:    usr,
-	}
-}
 
 // ----------------------------------------------------------------------------
 
