@@ -3,11 +3,14 @@ GIT_REVISION = $(shell git rev-parse --short HEAD)
 
 GO_GCFLAGS ?= 
 GO_LDFLAGS := -X "main.Revision=$(GIT_REVISION)"
+
 CGO_CFLAGS ?=
 CGO_LDFLAGS ?= -L$(LLVM_LIBDIR)
+CGO_FLAGS=CGO_CFLAGS='$(CGO_CFLAGS)' CGO_CXXFLAGS='$(CGO_CXXFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)'
+
 GO_BUILD_FLAGS ?=
 GO_TEST_FLAGS := 
-GO_PACKAGES = $(shell glide novendor)
+GO_PACKAGES = $(shell go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'symbol/internal')
 
 
 ifneq ($(CLANG_SERVER_DEBUG),)
@@ -116,30 +119,35 @@ UNUSED := \
 	vendor/google.golang.org/grpc/benchmark \
 	vendor/google.golang.org/grpc/test \
 	vendor/google.golang.org/grpc/testdata \
-	vendor/google.golang.org/grpc/transport/testdata
+	vendor/google.golang.org/grpc/transport/testdata \
+	vendor/google.golang.org/grpc/reflection/grpc_testing
 
 
 default: build
 
-build:
-	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_CXXFLAGS='$(CGO_CXXFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go build -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' ./cmd/clang-server
+build: clean/cache
+	$(CGO_FLAGS) go build -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' ./cmd/clang-server
 
-build-race: GO_BUILD_FLAGS+=-race;build
+build-race: GO_BUILD_FLAGS+=-race
+build-race: build
 
 install:
-	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_CXXFLAGS='$(CGO_CXXFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go install -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' ./cmd/clang-server
+	$(CGO_FLAGS) go install -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' $(shell go list ./... | grep -v -e 'cmd' -e 'vendor' -e 'builtinheader' -e 'symbol/internal')
 
-run: clean/db
-	go run -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) ./cmd/clang-server/main.go -path /Users/zchee/src/github.com/neovim/neovim
+run: clean/cache
+	$(CGO_FLAGS) go run -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) ./cmd/clang-server/main.go -path /Users/zchee/src/github.com/neovim/neovim
+
+run-race: GO_BUILD_FLAGS+=-race
+run-race: run
 
 test:
 	go test $(GO_TEST_FLAGS) $(GO_PACKAGES)
 
 lint:
-	@for pkg in $(shell go list ./... | grep -v -e vendor -e symbol/internal | sed 's/github.com\/zchee\/clang-server/\./g'); do golint $$pkg; done
+	golint -min_confidence 0.1 $(GO_PACKAGES)
 
 vet:
-	@go vet -v -race $(GO_PACKAGES)
+	go vet -v -race $(GO_PACKAGES)
 
 prof/cpu:
 	go tool pprof -top -cum clang-server cpu.pprof
@@ -153,27 +161,18 @@ prof/block:
 prof/trace:
 	go tool pprof -top -cum clang-server trace.pprof
 
-glide:
-ifeq ($(shell command -v glide 2> /dev/null),)
-	go get -v github.com/Masterminds/glide
-endif
+vendor/install:
+	$(CGO_FLAGS) go install -v -x -tags '$(GO_BUILD_TAGS)' $(shell go list ./vendor/...)
+	$(CGO_FLAGS) go install -v -x -race -tags '$(GO_BUILD_TAGS)'  $(shell go list ./vendor/...)
 
-vendor/restore: glide
-	glide install
-
-vendor/install: glide
-	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_CXXFLAGS='$(CGO_CXXFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go install -v -x -tags '$(GO_BUILD_TAGS)' $(shell go list ./... | grep -v vendor)
-	CGO_CFLAGS='$(CGO_CFLAGS)' CGO_CXXFLAGS='$(CGO_CXXFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)' go install -v -x -race -tags '$(GO_BUILD_TAGS)'  $(shell go list ./... | grep -v vendor)
-
-vendor/update: glide
-	glide cache-clear
-	glide update
+vendor/update:
+	dep ensure -update -v
 
 vendor/clean:
-	rm -rf $(UNUSED)
-	find vendor -type f -name '*_test.go' -print -exec rm -fr {} ";"
-	find vendor \( -name 'testdata' -o -name 'cmd' -o -name 'examples' -o -name 'testutil' \) -print -exec rm -fr {} ";"
-	find vendor \( -name 'Makefile' -o -name 'Dockerfile' -o -name 'CHANGELOG*' -o -name '.travis.yml' -o -name 'appveyor.yml' -o -name '*.sh' -o -name '*.pl' -o -name 'codereview.cfg' -o -name '.github' -o -name '.gitignore' -o -name '.gitattributes' \) -print -exec rm -fr {} ";"
+	@rm -rf $(UNUSED)
+	@find vendor -type f -name '*_test.go' -print -exec rm -fr {} ";" || true
+	@find vendor \( -name 'testdata' -o -name 'cmd' -o -name 'examples' -o -name 'testutil' -o -name 'manualtest' \) -print | xargs rm -rf || true
+	@find vendor \( -name 'Makefile' -o -name 'Dockerfile' -o -name 'CHANGELOG*' -o -name '.travis.yml' -o -name 'appveyor.yml' -o -name '*.json' -o -name '*.proto' -o -name '*.sh' -o -name '*.pl' -o -name 'codereview.cfg' -o -name '.github' -o -name '.gitignore' -o -name '.gitattributes' \) -print | xargs rm -rf || true
 
 fbs:
 	@${RM} -r ./symbol/internal/symbol
