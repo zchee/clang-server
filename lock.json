@@ -28,7 +28,7 @@
         {
             "name": "github.com/google/flatbuffers",
             "branch": "master",
-            "revision": "d7ba17dfe5b07e9197dd6bb3ed07c38e6a4a4da7",
+            "revision": "ec8038cc3dae37c09048f766d43f741f76e270dd",
             "packages": [
                 "go"
             ]
@@ -84,7 +84,7 @@
         {
             "name": "golang.org/x/net",
             "branch": "master",
-            "revision": "236b8f043b920452504e263bc21d354427127473",
+            "revision": "61557ac0112b576429a0df080e1c2cef5dfbb642",
             "packages": [
                 "context",
                 "http2",
@@ -95,7 +95,7 @@
         {
             "name": "golang.org/x/sys",
             "branch": "master",
-            "revision": "7a6e5648d140666db5d920909e082ca00a87ba2c",
+            "revision": "aaabbdc969c3935a2a7f61efac801e7163c73a2a",
             "packages": [
                 "unix"
             ]
@@ -103,7 +103,7 @@
         {
             "name": "google.golang.org/grpc",
             "branch": "master",
-            "revision": "9b791e0ea399a912e17e176e5de6e7ac7d8c15ff",
+            "revision": "4acc9108c18937815db3306a66990869d22aa980",
             "packages": [
                 "."
             ]
