@@ -6,29 +6,35 @@ namespace symbol.internal.symbol;
 
 // ----------------------------------------------------------------------------
 
-/// File files of project.
+/// File represents a particular source file that part of a project.
 table File {
-  FileName: string (required, key); // -> []byte
+  /// Name name of file.
+  Name: string (required, key); // -> []byte
+
+  /// TranslationUnit libclang translation unit data of file.
   TranslationUnit: string; // -> []byte
-  SymbolDatabase: SymbolDatabase;
+
+  /// Symbols symbol database of file.
+  Symbols: [Info];
+
+  /// Headers headers of file.
+  Headers: [Header];
+
+  // Includes includes of file.
+  Includes: [string]; // -> [][]byte
 }
 
-/// SymbolDatabase translationunit of file.
-table SymbolDatabase {
-  Symbols: [Symbol] (id: 0);
-  Headers: [Header] (id: 1);
-  Includes: [string] (id: 2); // -> [][]byte
-  Mtime: long (id : 3); // time.Time.Unix(): int64
-}
-
-/// Symbol symbol of C/C++ sources.
-table Symbol {
+/// Info symbol of C/C++ source.
+table Info {
   /// ID hashed clang.Cursor.USR.
   ID: string (id: 0, required, key); // -> []byte
-  /// Definition location of definition.
-  Definition: Location (id: 1);
+
   /// Decls locations of declaration.
-  Decls: [Location] (id: 2);
+  Decls: [Location] (id: 1);
+
+  /// Definition location of definition.
+  Def: Location (id: 2);
+
   /// Callers caller of functions.
   Callers: [Caller] (id: 3);
 }
@@ -45,17 +51,27 @@ table Caller {
   FuncCall: bool; // -> byte
 }
 
-/// Location location of cursor.
+/// Location location of the symbol.
 table Location {
-  File: string (required); // -> []byte
+  /// FileName full filename of symbol position.
+  FileName: string (required); // -> []byte
+
+  /// Line line number of symbol location.
   Line: uint;    // clang.SourceLocation.Line: uint32
+
+  /// Col column number of symbol location.
   Col: uint = 0; // clang.SourceLocation.Col: uint32
+
+  /// Offset byte offset of symbol location.
   Offset: uint;  // clang.SourceLocation.Offset: uint32
+
+  /// USR Unified Symbol Resolution of cursor.
+  USR: string; // -> []byte
 }
 
 rpc_service Clang {
-  Store(SymbolDatabase):Location (streaming: "bidi");
-  Retrieve(Location):SymbolDatabase (streaming: "bidi");
+  Store(Info):Location (streaming: "bidi");
+  Retrieve(Location):Info (streaming: "bidi");
 }
 
 // ----------------------------------------------------------------------------
