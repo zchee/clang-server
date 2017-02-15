@@ -23,14 +23,15 @@ type worker struct {
 	dispatcher *dispatcher
 	data       chan interface{}
 	quit       chan struct{}
+	fn         func(parseArg) error
 }
 
 const maxQueues = 10000
 
 // newDispatcher returns a pointer of dispatcher.
-func newDispatcher() *dispatcher {
+func newDispatcher(fn func(parseArg) error) *dispatcher {
 	d := &dispatcher{
-		pool:  make(chan *worker, runtime.NumCPU()/2),
+		pool:  make(chan *worker, runtime.NumCPU()+1),
 		queue: make(chan parseArg, maxQueues),
 		quit:  make(chan struct{}),
 	}
@@ -40,6 +41,7 @@ func newDispatcher() *dispatcher {
 			dispatcher: d,
 			data:       make(chan interface{}),
 			quit:       make(chan struct{}),
+			fn:         fn,
 		}
 		d.workers[i] = &w
 	}
@@ -53,9 +55,9 @@ func (d *dispatcher) Add(v parseArg) {
 }
 
 // Start starts the specified dispatcher but does not wait for it to complete.
-func (d *dispatcher) Start(p *Parser) {
+func (d *dispatcher) Start() {
 	for _, w := range d.workers {
-		w.start(p)
+		w.start()
 	}
 	go func() {
 		for {
@@ -88,7 +90,7 @@ func (d *dispatcher) Stop(immediately bool) {
 	}
 }
 
-func (w *worker) start(p *Parser) {
+func (w *worker) start() {
 	go func() {
 		for {
 			// register the current worker into the dispatch pool
@@ -97,7 +99,7 @@ func (w *worker) start(p *Parser) {
 			select {
 			case v := <-w.data:
 				if arg, ok := v.(parseArg); ok {
-					p.ParseFile(arg)
+					w.fn(arg)
 				}
 
 				w.dispatcher.wg.Done()

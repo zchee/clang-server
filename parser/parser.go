@@ -95,6 +95,10 @@ func NewParser(path string, config Config) *Parser {
 		p.uncachedKind = make(map[clang.CursorKind]int)
 	}
 
+	if err := CreateBulitinHeaders(); err != nil {
+		log.Fatal(err)
+	}
+
 	return p
 }
 
@@ -133,18 +137,8 @@ func CreateBulitinHeaders() error {
 	return nil
 }
 
-// Parse parses the projects C/C++ files.
-func (p *Parser) Parse() error {
-	if err := CreateBulitinHeaders(); err != nil {
-		return err
-	}
-	p.Walk()
-
-	return nil
-}
-
-// Walk walk project directories.
-func (p *Parser) Walk() {
+// Parse parses the project directories.
+func (p *Parser) Parse() {
 	ccs := p.cd.CompileCommands()
 	if len(ccs) == 0 {
 		log.Fatal("not walk")
@@ -172,18 +166,14 @@ func (p *Parser) Walk() {
 		"-Wno-nullability-completeness", // TODO(zchee): diagnostics error: stdlib.h,stdio.h: pointer is missing a nullability type specifier (_Nonnull, _Nullable, or _Null_unspecified)
 		"-Wno-expansion-to-defined")     // TODO(zchee): diagnostics error: macro expansion producing 'defined' has undefined behavior
 
-	p.dispatcher = newDispatcher()
-	p.dispatcher.Start(p)
+	p.dispatcher = newDispatcher(p.ParseFile)
+	p.dispatcher.Start()
 	for i := 0; i < len(ccs); i++ {
-		i := i
-		go func(i int) {
-			args := ccs[i].Arguments
-			args = append(flags, args...)
-			p.dispatcher.Add(parseArg{ccs[i].File, args})
-		}(i)
+		args := ccs[i].Arguments
+		args = append(flags, args...)
+		p.dispatcher.Add(parseArg{ccs[i].File, args})
 	}
 	p.dispatcher.Wait()
-
 }
 
 type parseArg struct {
@@ -193,8 +183,6 @@ type parseArg struct {
 
 // ParseFile parses the C/C++ file.
 func (p *Parser) ParseFile(arg parseArg) error {
-	log.Printf("Goroutine:%d", runtime.NumGoroutine())
-
 	var tu clang.TranslationUnit
 
 	if p.db.Has(arg.filename) {
@@ -232,10 +220,10 @@ func (p *Parser) ParseFile(arg parseArg) error {
 
 	tuch := make(chan []byte)
 	go func() {
-		tuch <- p.SerializeTranslationUnit(arg.filename, tu)
+		tuch <- serializeTranslationUnit(arg.filename, tu)
 	}()
 
-	// p.printDiagnostics(tu.Diagnostics())
+	// printDiagnostics(tu.Diagnostics())
 
 	rootCursor := tu.TranslationUnitCursor()
 	file := symbol.NewFile(arg.filename)
@@ -296,20 +284,21 @@ func (p *Parser) ParseFile(arg parseArg) error {
 	out := symbol.GetRootAsFile(buf, 0)
 	printFile(out) // for debug
 
+	log.Printf("Goroutine:%d", runtime.NumGoroutine())
 	fmt.Printf("\n================== DONE: filename: %+v ==================\n\n\n", arg.filename)
 
 	return p.db.Put(arg.filename, buf)
 }
 
-// SerializeTranslationUnit selialize the TranslationUnit to Clang serialized representation.
+// serializeTranslationUnit selialize the TranslationUnit to Clang serialized representation.
 // TODO(zchee): Avoid ioutil.TempFile if possible.
-func (p *Parser) SerializeTranslationUnit(filename string, tu clang.TranslationUnit) []byte {
+func serializeTranslationUnit(filename string, tu clang.TranslationUnit) []byte {
 	tmpFile, err := ioutil.TempFile(os.TempDir(), filepath.Base(filename))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	saveOptions := uint32(clang.TranslationUnit_KeepGoing)
+	saveOptions := uint32(clang.TranslationUnit_ForSerialization | clang.TranslationUnit_KeepGoing)
 	if cErr := tu.SaveTranslationUnit(tmpFile.Name(), saveOptions); clang.SaveError(cErr) != clang.SaveError_None {
 		log.Fatal(clang.SaveError(cErr))
 	}
