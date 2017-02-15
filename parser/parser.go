@@ -16,6 +16,7 @@ import (
 
 	"github.com/go-clang/v3.9/clang"
 	"github.com/pkg/errors"
+	"github.com/pkgutil/stringsutil"
 	"github.com/zchee/clang-server/compilationdatabase"
 	"github.com/zchee/clang-server/indexdb"
 	"github.com/zchee/clang-server/internal/pathutil"
@@ -106,7 +107,7 @@ func NewParser(path string, config Config) *Parser {
 // CreateBulitinHeaders creates(dumps) a clang builtin header to cache directory.
 func CreateBulitinHeaders() error {
 	builtinHdrDir := filepath.Join(pathutil.CacheDir(), "clang", "include")
-	if pathutil.IsNotExist(builtinHdrDir) {
+	if !pathutil.IsExist(builtinHdrDir) {
 		if err := os.MkdirAll(builtinHdrDir, 0700); err != nil {
 			return errors.WithStack(err)
 		}
@@ -138,6 +139,16 @@ func CreateBulitinHeaders() error {
 	return nil
 }
 
+// Parse parses the projects C/C++ files.
+func (p *Parser) Parse() error {
+	if err := CreateBulitinHeaders(); err != nil {
+		return err
+	}
+	p.Walk()
+
+	return nil
+}
+
 // Walk walk project directories.
 func (p *Parser) Walk() {
 	ccs := p.cd.CompileCommands()
@@ -145,46 +156,47 @@ func (p *Parser) Walk() {
 		log.Fatal("not walk")
 	}
 
-	flags := []string{}
 	compilerConfig := p.cd.CompilerConfig
-	flags = compilerConfig.SystemIncludeDir
-	flags = append(flags, compilerConfig.SystemFrameworkDir...)
+	flags := append(compilerConfig.SystemCIncludeDir, compilerConfig.SystemFrameworkDir...)
+
+	// TODO(zchee): needs include stdint.h?
+	if i := stringsutil.IndexContainsSlice(ccs[0].Arguments, "-std="); i > 0 {
+		std := ccs[0].Arguments[i][5:]
+		switch {
+		case strings.HasPrefix(std, "c"), strings.HasPrefix(std, "gnu"):
+			if std[len(std)-2] == '8' || std[len(std)-2] == '9' {
+				flags = append(flags, "-include", "/usr/include/stdint.h")
+			}
+		}
+	}
+	if !(filepath.Ext(ccs[0].File) == ".c") {
+		flags = append(flags, compilerConfig.SystemCXXIncludeDir...)
+	}
+
 	builtinHdrDir := filepath.Join(pathutil.CacheDir(), "clang", "include")
 	flags = append(flags, "-I"+builtinHdrDir,
-		"-Wno-nullability-completeness", // TODO(zchee): stdlib.h,stdio.h: pointer is missing a nullability type specifier (_Nonnull, _Nullable, or _Null_unspecified)
-		"-Wno-expansion-to-defined")     // TODO(zchee): macro expansion producing 'defined' has undefined behavior
+		"-Wno-nullability-completeness", // TODO(zchee): diagnostics error: stdlib.h,stdio.h: pointer is missing a nullability type specifier (_Nonnull, _Nullable, or _Null_unspecified)
+		"-Wno-expansion-to-defined")     // TODO(zchee): diagnostics error: macro expansion producing 'defined' has undefined behavior
 
 	ch := make(chan struct{}, runtime.NumCPU()*3)
-
 	var wg sync.WaitGroup
 	for i := 0; i < len(ccs); i++ {
 		wg.Add(1)
+
 		i := i
-		flags := flags
-		go func(i int, flags []string) {
+		go func(i int) {
 			defer wg.Done()
-			flags = append(flags, ccs[i].Arguments...)
-			flags = append(flags, "-std=c11")
+
+			args := ccs[i].Arguments
+			args = append(flags, args...)
 			ch <- struct{}{}
-			if err := p.ParseFile(ccs[i].File, flags); err != nil {
+			if err := p.ParseFile(ccs[i].File, args); err != nil {
 				log.Fatal(err)
 			}
 			<-ch
-		}(i, flags)
+		}(i)
 	}
 	wg.Wait()
-}
-
-// Parse parses the projects C/C++ files.
-func (p *Parser) Parse() error {
-	if err := CreateBulitinHeaders(); err != nil {
-		return err
-	}
-	p.idx.SetGlobalOptions(clang.GlobalOpt_ThreadBackgroundPriorityForAll)
-	p.Walk()
-	log.Printf("done")
-
-	return nil
 }
 
 // ParseFile parses the C/C++ file.
@@ -192,24 +204,30 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 	var tu clang.TranslationUnit
 
 	if p.db.Has(filename) {
-		// if p.has(filename) {
-		// log.Info("has")
-		// tmpFile, err := ioutil.TempFile(os.TempDir(), filepath.Base(filename))
-		// if err != nil {
-		// 	return err
-		// }
-		// defer os.Remove(tmpFile.Name())
-		//
-		// buf, err := p.db.Get(filename)
-		// if err != nil {
-		// 	return err
-		// }
-		// file := symbol.GetRootAsFile(buf, 0)
-		// tmpFile.Write(file.GetTranslationUnit())
-		//
-		// if cErr := p.idx.TranslationUnit2(tmpFile.Name(), &tu); clang.ErrorCode(cErr) != clang.Error_Success {
-		// 	return errors.New(clang.ErrorCode(cErr).Spelling())
-		// }
+		tmpFile, err := ioutil.TempFile(os.TempDir(), filepath.Base(filename))
+		if err != nil {
+			return err
+		}
+
+		buf, err := p.db.Get(filename)
+		if err != nil {
+			return err
+		}
+		file := symbol.GetRootAsFile(buf, 0)
+		tmpFile.Write(file.TranslationUnit())
+
+		log.Printf("out.Name(): %+v\n", file.Name())
+		if cErr := p.idx.TranslationUnit2(tmpFile.Name(), &tu); clang.ErrorCode(cErr) != clang.Error_Success {
+			log.Print("reparse")
+			if cErr := p.idx.ParseTranslationUnit2(filename, flags, nil, p.clangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
+				return errors.New(clang.ErrorCode(cErr).Spelling())
+			}
+		}
+		defer tu.Dispose()
+
+		log.Printf("tu.Spelling(): %T => %+v\n", tu.Spelling(), tu.Spelling())
+
+		os.Remove(tmpFile.Name())
 		return nil
 	}
 
@@ -218,16 +236,23 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 	}
 	defer tu.Dispose()
 
+	tuch := make(chan []byte)
+	go func() {
+		tuch <- p.SerializeTranslationUnit(filename, tu)
+	}()
+
 	// p.printDiagnostics(tu.Diagnostics())
-	symDB := NewSymbolDB(filename)
+
+	rootCursor := tu.TranslationUnitCursor()
+	file := symbol.NewFile(filename)
 	visitNode := func(cursor, parent clang.Cursor) clang.ChildVisitResult {
 		if cursor.IsNull() {
 			log.Printf("cursor: <none>")
 			return clang.ChildVisit_Continue
 		}
 
-		cursorLoc := symbol.FromCursor(&cursor)
-		if cursorLoc.File == "" || cursorLoc.File == "." {
+		cursorLoc := symbol.FromCursor(cursor)
+		if cursorLoc.FileName() == "" || cursorLoc.FileName() == "." {
 			// TODO(zchee): Ignore system header(?)
 			return clang.ChildVisit_Continue
 		}
@@ -236,32 +261,31 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 		switch kind {
 		case clang.Cursor_FunctionDecl, clang.Cursor_StructDecl, clang.Cursor_FieldDecl, clang.Cursor_TypedefDecl, clang.Cursor_EnumDecl, clang.Cursor_EnumConstantDecl:
 			defCursor := cursor.Definition()
-			switch {
-			case defCursor.IsNull():
-				symbolDB.AddDecl(cursorLoc)
-			default:
-				defLoc := symbol.FromCursor(&defCursor)
-				symbolDB.AddDefinition(cursorLoc, defLoc)
+			if defCursor.IsNull() {
+				file.AddDecl(cursorLoc)
+			} else {
+				defLoc := symbol.FromCursor(defCursor)
+				file.AddDefinition(cursorLoc, defLoc)
 			}
 		case clang.Cursor_MacroDefinition:
-			symbolDB.AddDefinition(cursorLoc, cursorLoc)
+			file.AddDefinition(cursorLoc, cursorLoc)
 		case clang.Cursor_VarDecl:
-			symbolDB.AddDecl(cursorLoc)
+			file.AddDecl(cursorLoc)
 		case clang.Cursor_ParmDecl:
 			if cursor.Spelling() != "" {
-				symbolDB.AddDecl(cursorLoc)
+				file.AddDecl(cursorLoc)
 			}
 		case clang.Cursor_CallExpr:
 			refCursor := cursor.Referenced()
-			refLoc := symbol.FromCursor(&refCursor)
-			symbolDB.AddCaller(cursorLoc, refLoc, true)
+			refLoc := symbol.FromCursor(refCursor)
+			file.AddCaller(cursorLoc, refLoc, true)
 		case clang.Cursor_DeclRefExpr, clang.Cursor_TypeRef, clang.Cursor_MemberRefExpr, clang.Cursor_MacroExpansion:
 			refCursor := cursor.Referenced()
-			refLoc := symbol.FromCursor(&refCursor)
-			symbolDB.AddCaller(cursorLoc, refLoc, false)
+			refLoc := symbol.FromCursor(refCursor)
+			file.AddCaller(cursorLoc, refLoc, false)
 		case clang.Cursor_InclusionDirective:
 			incFile := cursor.IncludedFile()
-			symbolDB.AddHeader(cursor.Spelling(), incFile)
+			file.AddHeader(cursor.Spelling(), incFile)
 		default:
 			if p.debugUncatched {
 				p.uncachedKind[kind]++
@@ -271,23 +295,28 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 		return clang.ChildVisit_Recurse
 	}
 
-	tu.TranslationUnitCursor().Visit(visitNode)
+	rootCursor.Visit(visitNode)
+	file.AddTranslationUnit(<-tuch)
 
-	log.Printf("done: filename: %+v\n", filename)
+	buf := file.Serialize()
+	out := symbol.GetRootAsFile(buf, 0)
+	printFile(out) // for debug
 
-	return p.db.Put(filename, []byte{})
+	fmt.Printf("\n================== DONE: filename: %+v ==================\n\n\n", filename)
+
+	return p.db.Put(filename, buf)
 }
 
-// serializeTranslationUnit selialize the TranslationUnit to Clang serialized representation.
-// TODO(zchee): Avoid ioutil.TempFile, get directly if possible.
-func (p *Parser) serializeTranslationUnit(filename string, tu clang.TranslationUnit) []byte {
+// SerializeTranslationUnit selialize the TranslationUnit to Clang serialized representation.
+// TODO(zchee): Avoid ioutil.TempFile if possible.
+func (p *Parser) SerializeTranslationUnit(filename string, tu clang.TranslationUnit) []byte {
 	tmpFile, err := ioutil.TempFile(os.TempDir(), filepath.Base(filename))
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer os.Remove(tmpFile.Name())
 
-	if cErr := tu.SaveTranslationUnit(tmpFile.Name(), tu.DefaultSaveOptions()); clang.SaveError(cErr) != clang.SaveError_None {
+	saveOptions := uint32(clang.TranslationUnit_KeepGoing)
+	if cErr := tu.SaveTranslationUnit(tmpFile.Name(), saveOptions); clang.SaveError(cErr) != clang.SaveError_None {
 		log.Fatal(clang.SaveError(cErr))
 	}
 
@@ -295,6 +324,7 @@ func (p *Parser) serializeTranslationUnit(filename string, tu clang.TranslationU
 	if err != nil {
 		log.Fatal(err)
 	}
+	os.Remove(tmpFile.Name())
 
 	return buf
 }
@@ -305,6 +335,31 @@ func (p *Parser) printDiagnostics(diags []clang.Diagnostic) {
 		file, line, col, offset := d.Location().FileLocation()
 		fmt.Println("Location:", file.Name(), line, col, offset)
 		fmt.Println("PROBLEM:", d.Spelling())
+	}
+}
+
+// for debug
+func printFile(file *symbol.File) {
+	log.Printf("out.Name(): %+v\n", file.Name())
+
+	for i, sym := range file.Symbols() {
+		log.Printf("sym.ID: %+v\n", sym.ID())
+		def := sym.Def()
+		log.Printf("sym.Def(): FileName: %s, Line: %d, Col: %d, Offset: %d, USR: %s\n", def.FileName(), def.Line(), def.Col(), def.Offset(), def.USR())
+		for _, decl := range sym.Decls() {
+			log.Printf("sym.Decls(): FileName: %s, Line: %d, Col: %d, Offset: %d, USR: %s\n", decl.FileName(), decl.Line(), decl.Col(), decl.Offset(), decl.USR())
+		}
+		for _, caller := range sym.Callers() {
+			loc := caller.Location()
+			log.Printf("sym.Decls(): FileName: %s, Line: %d, Col: %d, Offset: %d, USR: %s\n", loc.FileName(), loc.Line(), loc.Col(), loc.Offset(), loc.USR())
+			log.Printf("caller.FuncCall: %b", caller.FuncCall())
+		}
+		// for _, hdr := range file.Header() {
+		// 	log.Printf("hdr: FileID: %s, Mtime: %d", hdr.FileID().String(), hdr.Mtime())
+		// }
+		if i > 10 {
+			break
+		}
 	}
 }
 
