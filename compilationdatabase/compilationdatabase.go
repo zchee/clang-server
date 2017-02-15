@@ -7,6 +7,7 @@ package compilationdatabase
 import (
 	"bufio"
 	"bytes"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/go-clang/v3.9/clang"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"github.com/zchee/clang-server/internal/pathutil"
 )
 
@@ -38,13 +38,14 @@ type CompilationDatabase struct {
 }
 
 type compilerConfig struct {
-	Target             string
-	ThreadModel        string
-	InstalledDir       string
-	DefaultFlag        []string
-	Version            string
-	SystemIncludeDir   []string
-	SystemFrameworkDir []string
+	Target              string
+	ThreadModel         string
+	InstalledDir        string
+	DefaultFlag         []string
+	Version             string
+	SystemCIncludeDir   []string
+	SystemCXXIncludeDir []string
+	SystemFrameworkDir  []string
 }
 
 // CompileCommand represents a each command object contains the translation unit’s main file,
@@ -73,7 +74,7 @@ func NewCompilationDatabase(root string) *CompilationDatabase {
 // flags to flags map.
 func (c *CompilationDatabase) Parse(jsonfile string, pathRange []string) error {
 	ch := make(chan *compilerConfig, 1)
-	go c.compilerDefaultConfig(ch)
+	go func() { ch <- c.DefaultCompilerConfig() }()
 
 	if jsonfile == "" {
 		jsonfile = DefaultJSONName
@@ -85,7 +86,7 @@ func (c *CompilationDatabase) Parse(jsonfile string, pathRange []string) error {
 
 	cErr, cd := clang.FromDirectory(dir)
 	if cErr != clang.CompilationDatabase_NoError {
-		return errors.WithStack(cErr)
+		return errors.WithStack(clang.CompilationDatabase_Error(cErr))
 	}
 	c.cd = cd
 	defer c.cd.Dispose()
@@ -104,7 +105,28 @@ func (c *CompilationDatabase) CompileCommands() []*CompileCommand {
 	return c.cmds
 }
 
-func (c *CompilationDatabase) compilerDefaultConfig(ch chan *compilerConfig) {
+// DefaultCompilerConfig gets the compiler defalut configs.
+// The parse target sample:
+//  clang -v -x c++ /dev/null -fsyntax-only
+//
+//  Apple LLVM version 8.1.0 (clang-802.0.27.2)
+//  Target: x86_64-apple-darwin16.5.0
+//  Thread model: posix
+//  InstalledDir: /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin
+//   "/Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang" -cc1 -triple x86_64-apple-macosx10.12.0 ...
+//  clang -cc1 version 8.1.0 (clang-802.0.27.2) default target x86_64-apple-darwin16.5.0
+//  ignoring nonexistent directory "/usr/include/c++/v1"
+//  #include "..." search starts here:
+//  #include <...> search starts here:
+//   /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../include/c++/v1
+//   /usr/local/include
+//   /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/clang/8.1.0/include
+//   /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include
+//   /usr/include
+//   /System/Library/Frameworks (framework directory)
+//   /Library/Frameworks (framework directory)
+//  End of search list.
+func (c *CompilationDatabase) DefaultCompilerConfig() *compilerConfig {
 	cc := "clang" // default is clang
 	if envCC := os.Getenv("CC"); envCC != "" {
 		cc = envCC
@@ -114,30 +136,35 @@ func (c *CompilationDatabase) compilerDefaultConfig(ch chan *compilerConfig) {
 		log.Fatalf("couldn't find %s", cc)
 	}
 
+	// Get C++ include directory together with -x flag
 	cmd := exec.Command(ccPath, "-v", "-x", "c++", "/dev/null", "-fsyntax-only")
 
 	var b bytes.Buffer
 	cmd.Stdout = &b
 	cmd.Stderr = &b
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("couldn't find %s", cc)
+		log.Fatal(err)
 	}
-	scan := bufio.NewScanner(&b)
 
-	var include bool
 	cfg := new(compilerConfig)
+	var includeSection bool
+	scan := bufio.NewScanner(&b)
 	for scan.Scan() {
 		s := scan.Text()
-		if include {
+		if includeSection {
 			if strings.HasPrefix(s, "End") {
-				include = false
+				includeSection = false
 				break
 			}
-			if strings.Contains(s, "framework directory") {
-				path := strings.TrimSpace(s)
+			path := strings.TrimSpace(s)
+			l := len(path)
+			switch {
+			case path[l-6:l-3] == "c++":
+				cfg.SystemCXXIncludeDir = append(cfg.SystemCXXIncludeDir, "-I"+path)
+			case strings.Contains(s, "framework directory"):
 				cfg.SystemFrameworkDir = append(cfg.SystemFrameworkDir, "-F"+strings.TrimSuffix(path, " (framework directory)"))
-			} else {
-				cfg.SystemIncludeDir = append(cfg.SystemIncludeDir, "-I"+strings.TrimSpace(s))
+			default:
+				cfg.SystemCIncludeDir = append(cfg.SystemCIncludeDir, "-I"+path)
 			}
 		}
 		switch {
@@ -155,11 +182,11 @@ func (c *CompilationDatabase) compilerDefaultConfig(ch chan *compilerConfig) {
 			version := strings.Split(sep[1], " ")[0]
 			cfg.Version = version
 		case strings.HasPrefix(s, "#include <...>"):
-			include = true
+			includeSection = true
 		}
 	}
 
-	ch <- cfg
+	return cfg
 }
 
 // findFile finds the filename on pathRange recursively.
@@ -171,11 +198,11 @@ func (c *CompilationDatabase) findJSONFile(filename string, pathRange []string) 
 		pathRange = []string{c.root, parent, buildDir, outDir}
 	}
 
-	pathCh := make(chan string, len(pathRange))
+	pathCh := make(chan string, 1)
 	for _, d := range pathRange {
 		go func(d string) {
 			if pathutil.IsExist(filepath.Join(d, filename)) {
-				log.Debugf("found filepath: %s", filepath.Join(d, filename))
+				log.Printf("found filepath: %s", filepath.Join(d, filename))
 				pathCh <- d
 			}
 		}(d)
