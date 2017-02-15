@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 
 	"github.com/go-clang/v3.9/clang"
 	"github.com/pkg/errors"
@@ -38,8 +37,7 @@ import (
 const defaultClangOption uint32 = 0x445 // Use all flags for now
 
 func init() {
-	// for debug
-	log.SetFlags(log.Lshortfile)
+	log.SetFlags(log.Lshortfile) // for debug
 }
 
 // Parser represents a C/C++ AST parser.
@@ -51,7 +49,7 @@ type Parser struct {
 	cd  *compilationdatabase.CompilationDatabase
 	db  *indexdb.IndexDB
 
-	mu sync.Mutex
+	dispatcher *dispatcher
 
 	debugUncatched bool                     // for debug
 	uncachedKind   map[clang.CursorKind]int // for debug
@@ -178,38 +176,38 @@ func (p *Parser) Walk() {
 		"-Wno-nullability-completeness", // TODO(zchee): diagnostics error: stdlib.h,stdio.h: pointer is missing a nullability type specifier (_Nonnull, _Nullable, or _Null_unspecified)
 		"-Wno-expansion-to-defined")     // TODO(zchee): diagnostics error: macro expansion producing 'defined' has undefined behavior
 
-	ch := make(chan struct{}, runtime.NumCPU()*3)
-	var wg sync.WaitGroup
+	p.dispatcher = newDispatcher()
+	p.dispatcher.Start(p)
 	for i := 0; i < len(ccs); i++ {
-		wg.Add(1)
-
 		i := i
 		go func(i int) {
-			defer wg.Done()
-
 			args := ccs[i].Arguments
 			args = append(flags, args...)
-			ch <- struct{}{}
-			if err := p.ParseFile(ccs[i].File, args); err != nil {
-				log.Fatal(err)
-			}
-			<-ch
+			p.dispatcher.Add(parseArg{ccs[i].File, args})
 		}(i)
 	}
-	wg.Wait()
+	p.dispatcher.Wait()
+
+}
+
+type parseArg struct {
+	filename string
+	flag     []string
 }
 
 // ParseFile parses the C/C++ file.
-func (p *Parser) ParseFile(filename string, flags []string) error {
+func (p *Parser) ParseFile(arg parseArg) error {
+	log.Printf("Goroutine:%d", runtime.NumGoroutine())
+
 	var tu clang.TranslationUnit
 
-	if p.db.Has(filename) {
-		tmpFile, err := ioutil.TempFile(os.TempDir(), filepath.Base(filename))
+	if p.db.Has(arg.filename) {
+		tmpFile, err := ioutil.TempFile(os.TempDir(), filepath.Base(arg.filename))
 		if err != nil {
 			return err
 		}
 
-		buf, err := p.db.Get(filename)
+		buf, err := p.db.Get(arg.filename)
 		if err != nil {
 			return err
 		}
@@ -219,7 +217,7 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 		log.Printf("out.Name(): %+v\n", file.Name())
 		if cErr := p.idx.TranslationUnit2(tmpFile.Name(), &tu); clang.ErrorCode(cErr) != clang.Error_Success {
 			log.Print("reparse")
-			if cErr := p.idx.ParseTranslationUnit2(filename, flags, nil, p.clangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
+			if cErr := p.idx.ParseTranslationUnit2(arg.filename, arg.flag, nil, p.clangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
 				return errors.New(clang.ErrorCode(cErr).Spelling())
 			}
 		}
@@ -231,20 +229,20 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 		return nil
 	}
 
-	if cErr := p.idx.ParseTranslationUnit2(filename, flags, nil, p.clangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
+	if cErr := p.idx.ParseTranslationUnit2(arg.filename, arg.flag, nil, p.clangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
 		return errors.New(clang.ErrorCode(cErr).Spelling())
 	}
 	defer tu.Dispose()
 
 	tuch := make(chan []byte)
 	go func() {
-		tuch <- p.SerializeTranslationUnit(filename, tu)
+		tuch <- p.SerializeTranslationUnit(arg.filename, tu)
 	}()
 
 	// p.printDiagnostics(tu.Diagnostics())
 
 	rootCursor := tu.TranslationUnitCursor()
-	file := symbol.NewFile(filename)
+	file := symbol.NewFile(arg.filename)
 	visitNode := func(cursor, parent clang.Cursor) clang.ChildVisitResult {
 		if cursor.IsNull() {
 			log.Printf("cursor: <none>")
@@ -302,9 +300,9 @@ func (p *Parser) ParseFile(filename string, flags []string) error {
 	out := symbol.GetRootAsFile(buf, 0)
 	printFile(out) // for debug
 
-	fmt.Printf("\n================== DONE: filename: %+v ==================\n\n\n", filename)
+	fmt.Printf("\n================== DONE: filename: %+v ==================\n\n\n", arg.filename)
 
-	return p.db.Put(filename, buf)
+	return p.db.Put(arg.filename, buf)
 }
 
 // SerializeTranslationUnit selialize the TranslationUnit to Clang serialized representation.
@@ -352,11 +350,11 @@ func printFile(file *symbol.File) {
 		for _, caller := range sym.Callers() {
 			loc := caller.Location()
 			log.Printf("sym.Decls(): FileName: %s, Line: %d, Col: %d, Offset: %d, USR: %s\n", loc.FileName(), loc.Line(), loc.Col(), loc.Offset(), loc.USR())
-			log.Printf("caller.FuncCall: %b", caller.FuncCall())
+			log.Printf("caller.FuncCall: %+v", caller.FuncCall())
 		}
-		// for _, hdr := range file.Header() {
-		// 	log.Printf("hdr: FileID: %s, Mtime: %d", hdr.FileID().String(), hdr.Mtime())
-		// }
+		for _, hdr := range file.Header() {
+			log.Printf("hdr: FileID: %s, Mtime: %d", hdr.FileID().String(), hdr.Mtime())
+		}
 		if i > 10 {
 			break
 		}
