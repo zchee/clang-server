@@ -7,7 +7,6 @@ package indexdb
 import (
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/zchee/clang-server/internal/hashutil"
 	"github.com/zchee/clang-server/internal/pathutil"
@@ -40,13 +39,11 @@ func (i *IndexDB) Close() error {
 }
 
 func (i *IndexDB) Put(filename string, data []byte) error {
-	log.Debug("put")
 	fileID := hashutil.NewHashString(filename)
 	return i.db.Put(hashutil.Encode(fileID), data, nil)
 }
 
 func (i *IndexDB) Get(filename string) ([]byte, error) {
-	log.Debug("get")
 	fileID := hashutil.NewHashString(filename)
 	return i.db.Get(hashutil.Encode(fileID), nil)
 }
