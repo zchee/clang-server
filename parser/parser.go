@@ -34,7 +34,8 @@ import (
 // clang.TranslationUnit_IncludeBriefCommentsInCodeCompletion = 0x80
 // clang.TranslationUnit_CreatePreambleOnFirstParse = 0x100
 // clang.TranslationUnit_KeepGoing = 0x200
-const defaultClangOption uint32 = 0x445 // Use all flags for now
+// const defaultClangOption uint32 = 0x445 // Use all flags for now
+var defaultClangOption uint32 = clang.DefaultEditingTranslationUnitOptions() | uint32(clang.TranslationUnit_KeepGoing)
 
 // Parser represents a C/C++ AST parser.
 type Parser struct {
