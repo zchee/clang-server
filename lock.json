@@ -1,5 +1,5 @@
 {
-    "memo": "35337d0adc0239dfa01b324998cafbef55e31df8f81f536dcfa7566afa63d196",
+    "memo": "4e3fb41ca8c3f10543767c82724759c3dd4533fc554243ae1616ff4f706ac4ca",
     "projects": [
         {
             "name": "github.com/go-clang/v3.9",
@@ -20,7 +20,7 @@
         {
             "name": "github.com/golang/snappy",
             "branch": "master",
-            "revision": "7db9049039a047d955fe8c19b83c8ff5abd765c7",
+            "revision": "d9eb7a3d35ec988b8585d4a0068e462c27d28380",
             "packages": [
                 "."
             ]
@@ -28,7 +28,7 @@
         {
             "name": "github.com/google/flatbuffers",
             "branch": "master",
-            "revision": "ec8038cc3dae37c09048f766d43f741f76e270dd",
+            "revision": "f9055ff9a79edcf830bf5d7d11c7d321e439b7ad",
             "packages": [
                 "go"
             ]
@@ -50,9 +50,9 @@
             ]
         },
         {
-            "name": "github.com/sirupsen/logrus",
+            "name": "github.com/pkgutil/stringsutil",
             "branch": "master",
-            "revision": "3f603f494d61c73457fb234161d8982b9f0f0b71",
+            "revision": "367fb4f4842f02a4aacc93033d20a58ed7a91ca6",
             "packages": [
                 "."
             ]
@@ -60,7 +60,7 @@
         {
             "name": "github.com/syndtr/goleveldb",
             "branch": "master",
-            "revision": "23851d93a2292dcc56e71a18ec9e0624d84a0f65",
+            "revision": "6b4daa5362b502898ddf367c5c11deb9e7a5c727",
             "packages": [
                 "leveldb"
             ]
@@ -76,7 +76,7 @@
         {
             "name": "github.com/tmthrgd/go-hex",
             "branch": "master",
-            "revision": "6ed1a27605c932131ab3ffb2da8821d2b9676fc7",
+            "revision": "e648309466c4639fec0373f9565eeec831b58a34",
             "packages": [
                 "."
             ]
@@ -90,14 +90,6 @@
                 "http2",
                 "http2/hpack",
                 "trace"
-            ]
-        },
-        {
-            "name": "golang.org/x/sys",
-            "branch": "master",
-            "revision": "aaabbdc969c3935a2a7f61efac801e7163c73a2a",
-            "packages": [
-                "unix"
             ]
         },
         {
