@@ -1,4 +1,5 @@
 LLVM_LIBDIR = $(shell llvm-config --libdir)
+# LLVM_LIBDIR = /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib
 GIT_REVISION = $(shell git rev-parse --short HEAD)
 
 GO_GCFLAGS ?= 
@@ -115,17 +116,21 @@ UNUSED := \
 	vendor/github.com/google/flatbuffers/samples \
 	vendor/github.com/google/flatbuffers/src \
 	vendor/github.com/google/flatbuffers/tests \
-	vendor/google.golang.org/grpc/Documentation \
+	vendor/github.com/golang/protobuf/protoc-gen-go \
+	vendor/golang.org/x/net/http2/h2i \
 	vendor/google.golang.org/grpc/benchmark \
+	vendor/google.golang.org/grpc/Documentation \
+	vendor/google.golang.org/grpc/interop \
+	vendor/google.golang.org/grpc/reflection/grpc_testing \
+	vendor/google.golang.org/grpc/stress \
 	vendor/google.golang.org/grpc/test \
 	vendor/google.golang.org/grpc/testdata \
-	vendor/google.golang.org/grpc/transport/testdata \
-	vendor/google.golang.org/grpc/reflection/grpc_testing
+	vendor/google.golang.org/grpc/transport/testdata
 
 
 default: build
 
-build: clean/cache
+build:
 	$(CGO_FLAGS) go build -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' ./cmd/clang-server
 
 build-race: GO_BUILD_FLAGS+=-race
@@ -134,8 +139,10 @@ build-race: build
 install:
 	$(CGO_FLAGS) go install -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' $(shell go list ./... | grep -v -e 'cmd' -e 'vendor' -e 'builtinheader' -e 'symbol/internal')
 
-run: clean/cache
-	$(CGO_FLAGS) go run -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) ./cmd/clang-server/main.go -path /Users/zchee/src/github.com/neovim/neovim
+run: build
+	LIBCLANG_LOGGING=1 \
+	CC=/usr/local/bin/clang ./clang-server -path /Users/zchee/src/github.com/neovim/neovim
+	# CC=/usr/local/bin/clang ./clang-server -path /Users/zchee/src/github.com/tmux/tmux
 
 run-race: GO_BUILD_FLAGS+=-race
 run-race: run
@@ -172,7 +179,7 @@ vendor/clean:
 	@rm -rf $(UNUSED)
 	@find vendor -type f -name '*_test.go' -print -exec rm -fr {} ";" || true
 	@find vendor \( -name 'testdata' -o -name 'cmd' -o -name 'examples' -o -name 'testutil' -o -name 'manualtest' \) -print | xargs rm -rf || true
-	@find vendor \( -name 'Makefile' -o -name 'Dockerfile' -o -name 'CHANGELOG*' -o -name '.travis.yml' -o -name 'appveyor.yml' -o -name '*.json' -o -name '*.proto' -o -name '*.sh' -o -name '*.pl' -o -name 'codereview.cfg' -o -name '.github' -o -name '.gitignore' -o -name '.gitattributes' \) -print | xargs rm -rf || true
+	@find vendor \( -name 'Makefile' -o -name 'Dockerfile' -o -name 'CHANGELOG*' -o -name '.travis.yml' -o -name 'circle.yml' -o -name 'appveyor.yml' -o -name '*.json' -o -name '*.proto' -o -name '*.sh' -o -name '*.pl' -o -name 'codereview.cfg' -o -name '.github' -o -name '.gitignore' -o -name '.gitattributes' \) -print | xargs rm -rf || true
 
 fbs:
 	@${RM} -r ./symbol/internal/symbol
