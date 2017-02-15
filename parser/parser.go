@@ -36,10 +36,6 @@ import (
 // clang.TranslationUnit_KeepGoing = 0x200
 const defaultClangOption uint32 = 0x445 // Use all flags for now
 
-func init() {
-	log.SetFlags(log.Lshortfile) // for debug
-}
-
 // Parser represents a C/C++ AST parser.
 type Parser struct {
 	root        string
