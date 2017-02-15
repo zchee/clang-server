@@ -123,7 +123,7 @@ func (e *encode) BigLoop(l asm.Label, vpand, vpunpckhbw, vpshufb func(ops ...asm
 	e.Convert(asm.X2, asm.X1, asm.X0, asm.X3, vpand, vpunpckhbw, vpshufb)
 
 	for i, r := range []asm.Operand{asm.X2, asm.X1} {
-		e.Movou(asm.Address(e.di, e.cx, asm.SX2, -16*(i + 1)), r)
+		e.Movou(asm.Address(e.di, e.cx, asm.SX2, -16*(i+1)), r)
 	}
 
 	e.Subq(e.cx, asm.Constant(16))

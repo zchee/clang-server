@@ -20,7 +20,7 @@
         {
             "name": "github.com/golang/snappy",
             "branch": "master",
-            "revision": "d9eb7a3d35ec988b8585d4a0068e462c27d28380",
+            "revision": "7db9049039a047d955fe8c19b83c8ff5abd765c7",
             "packages": [
                 "."
             ]
@@ -28,7 +28,7 @@
         {
             "name": "github.com/google/flatbuffers",
             "branch": "master",
-            "revision": "f9055ff9a79edcf830bf5d7d11c7d321e439b7ad",
+            "revision": "1fb6b9ee6f817befae08f39549d5bd80de3931cc",
             "packages": [
                 "go"
             ]
@@ -60,7 +60,7 @@
         {
             "name": "github.com/syndtr/goleveldb",
             "branch": "master",
-            "revision": "6b4daa5362b502898ddf367c5c11deb9e7a5c727",
+            "revision": "23851d93a2292dcc56e71a18ec9e0624d84a0f65",
             "packages": [
                 "leveldb"
             ]
@@ -76,7 +76,7 @@
         {
             "name": "github.com/tmthrgd/go-hex",
             "branch": "master",
-            "revision": "e648309466c4639fec0373f9565eeec831b58a34",
+            "revision": "6ed1a27605c932131ab3ffb2da8821d2b9676fc7",
             "packages": [
                 "."
             ]
@@ -95,7 +95,7 @@
         {
             "name": "google.golang.org/grpc",
             "branch": "master",
-            "revision": "4acc9108c18937815db3306a66990869d22aa980",
+            "revision": "cbcceb2942a489498cf22b2f918536e819d33f0a",
             "packages": [
                 "."
             ]
