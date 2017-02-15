@@ -299,7 +299,7 @@ func serializeTranslationUnit(filename string, tu clang.TranslationUnit) []byte 
 		log.Fatal(err)
 	}
 
-	saveOptions := uint32(clang.TranslationUnit_ForSerialization | clang.TranslationUnit_KeepGoing)
+	saveOptions := uint32(clang.TranslationUnit_KeepGoing)
 	if cErr := tu.SaveTranslationUnit(tmpFile.Name(), saveOptions); clang.SaveError(cErr) != clang.SaveError_None {
 		log.Fatal(clang.SaveError(cErr))
 	}
