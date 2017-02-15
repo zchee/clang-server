@@ -157,15 +157,15 @@ func (p *Parser) Parse() {
 				flags = append(flags, "-include", "/usr/include/stdint.h")
 			}
 		}
+	} else {
+		flags = append(flags, "-include", "/usr/include/stdint.h")
 	}
 	if !(filepath.Ext(ccs[0].File) == ".c") {
 		flags = append(flags, compilerConfig.SystemCXXIncludeDir...)
 	}
 
 	builtinHdrDir := filepath.Join(pathutil.CacheDir(), "clang", "include")
-	flags = append(flags, "-I"+builtinHdrDir,
-		"-Wno-nullability-completeness", // TODO(zchee): diagnostics error: stdlib.h,stdio.h: pointer is missing a nullability type specifier (_Nonnull, _Nullable, or _Null_unspecified)
-		"-Wno-expansion-to-defined")     // TODO(zchee): diagnostics error: macro expansion producing 'defined' has undefined behavior
+	flags = append(flags, "-I"+builtinHdrDir)
 
 	p.dispatcher = newDispatcher(p.ParseFile)
 	p.dispatcher.Start()
