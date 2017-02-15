@@ -83,3 +83,6 @@ dkms.cof
 # binary
 clang-server
 !cmd/clang-server
+
+# clang builtin header
+parser/builtinheader/include
