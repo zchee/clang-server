@@ -6,7 +6,7 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-/// File files of project.
+/// File represents a particular source file that part of a project.
 type File struct {
 	_tab flatbuffers.Table
 }
@@ -27,7 +27,8 @@ func (rcv *File) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *File) FileName() []byte {
+/// Name name of file.
+func (rcv *File) Name() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -35,6 +36,8 @@ func (rcv *File) FileName() []byte {
 	return nil
 }
 
+/// Name name of file.
+/// TranslationUnit libclang translation unit data of file.
 func (rcv *File) TranslationUnit() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
@@ -43,30 +46,94 @@ func (rcv *File) TranslationUnit() []byte {
 	return nil
 }
 
-func (rcv *File) SymbolDatabase(obj *SymbolDatabase) *SymbolDatabase {
+/// TranslationUnit libclang translation unit data of file.
+/// Symbols symbol database of file.
+func (rcv *File) Symbols(obj *Info, j int) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(SymbolDatabase)
-		}
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
 		obj.Init(rcv._tab.Bytes, x)
-		return obj
+		return true
+	}
+	return false
+}
+
+func (rcv *File) SymbolsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+/// Symbols symbol database of file.
+/// Headers headers of file.
+func (rcv *File) Headers(obj *Header, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *File) HeadersLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+/// Headers headers of file.
+func (rcv *File) Includes(j int) []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
 	}
 	return nil
 }
 
-func FileStart(builder *flatbuffers.Builder) {
-	builder.StartObject(3)
+func (rcv *File) IncludesLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
 }
-func FileAddFileName(builder *flatbuffers.Builder, FileName flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(FileName), 0)
+
+func FileStart(builder *flatbuffers.Builder) {
+	builder.StartObject(5)
+}
+func FileAddName(builder *flatbuffers.Builder, Name flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(Name), 0)
 }
 func FileAddTranslationUnit(builder *flatbuffers.Builder, TranslationUnit flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(TranslationUnit), 0)
 }
-func FileAddSymbolDatabase(builder *flatbuffers.Builder, SymbolDatabase flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(SymbolDatabase), 0)
+func FileAddSymbols(builder *flatbuffers.Builder, Symbols flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(Symbols), 0)
+}
+func FileStartSymbolsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func FileAddHeaders(builder *flatbuffers.Builder, Headers flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(Headers), 0)
+}
+func FileStartHeadersVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func FileAddIncludes(builder *flatbuffers.Builder, Includes flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(Includes), 0)
+}
+func FileStartIncludesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func FileEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

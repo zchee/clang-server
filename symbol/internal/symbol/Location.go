@@ -6,7 +6,7 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-/// Location location of cursor.
+/// Location location of the symbol.
 type Location struct {
 	_tab flatbuffers.Table
 }
@@ -27,7 +27,8 @@ func (rcv *Location) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *Location) File() []byte {
+/// FileName full filename of symbol position.
+func (rcv *Location) FileName() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -35,6 +36,8 @@ func (rcv *Location) File() []byte {
 	return nil
 }
 
+/// FileName full filename of symbol position.
+/// Line line number of symbol location.
 func (rcv *Location) Line() uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
@@ -43,10 +46,12 @@ func (rcv *Location) Line() uint32 {
 	return 0
 }
 
+/// Line line number of symbol location.
 func (rcv *Location) MutateLine(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(6, n)
 }
 
+/// Col column number of symbol location.
 func (rcv *Location) Col() uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
@@ -55,10 +60,12 @@ func (rcv *Location) Col() uint32 {
 	return 0
 }
 
+/// Col column number of symbol location.
 func (rcv *Location) MutateCol(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(8, n)
 }
 
+/// Offset byte offset of symbol location.
 func (rcv *Location) Offset() uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
@@ -67,15 +74,26 @@ func (rcv *Location) Offset() uint32 {
 	return 0
 }
 
+/// Offset byte offset of symbol location.
 func (rcv *Location) MutateOffset(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(10, n)
 }
 
-func LocationStart(builder *flatbuffers.Builder) {
-	builder.StartObject(4)
+/// USR Unified Symbol Resolution of cursor.
+func (rcv *Location) USR() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
 }
-func LocationAddFile(builder *flatbuffers.Builder, File flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(File), 0)
+
+/// USR Unified Symbol Resolution of cursor.
+func LocationStart(builder *flatbuffers.Builder) {
+	builder.StartObject(5)
+}
+func LocationAddFileName(builder *flatbuffers.Builder, FileName flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(FileName), 0)
 }
 func LocationAddLine(builder *flatbuffers.Builder, Line uint32) {
 	builder.PrependUint32Slot(1, Line, 0)
@@ -85,6 +103,9 @@ func LocationAddCol(builder *flatbuffers.Builder, Col uint32) {
 }
 func LocationAddOffset(builder *flatbuffers.Builder, Offset uint32) {
 	builder.PrependUint32Slot(3, Offset, 0)
+}
+func LocationAddUSR(builder *flatbuffers.Builder, USR flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(USR), 0)
 }
 func LocationEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
