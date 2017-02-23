@@ -1,5 +1,5 @@
 {
-    "memo": "4e3fb41ca8c3f10543767c82724759c3dd4533fc554243ae1616ff4f706ac4ca",
+    "memo": "cf7fa6dadb3ab38ce66bdf86e358e5e336176ae88f74b20b0b8eab4cc1c7a32b",
     "projects": [
         {
             "name": "github.com/go-clang/v3.9",
@@ -50,6 +50,14 @@
             ]
         },
         {
+            "name": "github.com/pkgutil/filepathutil",
+            "branch": "master",
+            "revision": "2fb27fe0357ccf5b228716a38dd92c4fdc4442eb",
+            "packages": [
+                "."
+            ]
+        },
+        {
             "name": "github.com/pkgutil/stringsutil",
             "branch": "master",
             "revision": "367fb4f4842f02a4aacc93033d20a58ed7a91ca6",
@@ -62,7 +70,18 @@
             "branch": "master",
             "revision": "23851d93a2292dcc56e71a18ec9e0624d84a0f65",
             "packages": [
-                "leveldb"
+                "leveldb",
+                "leveldb/cache",
+                "leveldb/comparer",
+                "leveldb/errors",
+                "leveldb/filter",
+                "leveldb/iterator",
+                "leveldb/journal",
+                "leveldb/memdb",
+                "leveldb/opt",
+                "leveldb/storage",
+                "leveldb/table",
+                "leveldb/util"
             ]
         },
         {
@@ -82,6 +101,15 @@
             ]
         },
         {
+            "name": "github.com/zchee/go-xdgbasedir",
+            "branch": "master",
+            "revision": "6bd33da7ec720657ab9c3e3b997ac0fb189310e2",
+            "packages": [
+                ".",
+                "home"
+            ]
+        },
+        {
             "name": "golang.org/x/net",
             "branch": "master",
             "revision": "61557ac0112b576429a0df080e1c2cef5dfbb642",
@@ -89,6 +117,9 @@
                 "context",
                 "http2",
                 "http2/hpack",
+                "idna",
+                "internal/timeseries",
+                "lex/httplex",
                 "trace"
             ]
         },
@@ -97,7 +128,17 @@
             "branch": "master",
             "revision": "cbcceb2942a489498cf22b2f918536e819d33f0a",
             "packages": [
-                "."
+                ".",
+                "codes",
+                "credentials",
+                "grpclog",
+                "internal",
+                "metadata",
+                "naming",
+                "peer",
+                "stats",
+                "tap",
+                "transport"
             ]
         }
     ]
