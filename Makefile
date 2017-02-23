@@ -143,6 +143,7 @@ CGO_FLAGS = CC="$(CC)" CXX="$(CXX)" CGO_CFLAGS="$(CGO_CFLAGS)" CGO_CXXFLAGS="$(C
 # vendor packages
 
 UNUSED := \
+	vendor/github.com/tmthrgd/asm \
 	vendor/github.com/google/flatbuffers/CMake \
 	vendor/github.com/google/flatbuffers/CMakeLists.txt \
 	vendor/github.com/google/flatbuffers/CONTRIBUTING.md \
@@ -216,7 +217,7 @@ vendor/clean:
 	@rm -rf $(UNUSED)
 	@find vendor -type f -name '*_test.go' -print -exec rm -fr {} ";" || true
 	@find vendor \( -name 'testdata' -o -name 'cmd' -o -name 'examples' -o -name 'testutil' -o -name 'manualtest' \) -print | xargs rm -rf || true
-	@find vendor \( -name 'Makefile' -o -name 'Dockerfile' -o -name 'CHANGELOG*' -o -name '.travis.yml' -o -name 'circle.yml' -o -name 'appveyor.yml' -o -name '*.json' -o -name '*.proto' -o -name '*.sh' -o -name '*.pl' -o -name 'codereview.cfg' -o -name '.github' -o -name '.gitignore' -o -name '.gitattributes' \) -print | xargs rm -rf || true
+	@find vendor \( -name 'Makefile' -o -name 'Dockerfile' -o -name 'CHANGELOG*' -o -name '.travis.yml' -o -name 'circle.yml' -o -name '.appveyor.yml' -o -name 'appveyor.yml' -o -name '*.json' -o -name '*.proto' -o -name '*.sh' -o -name '*.pl' -o -name 'codereview.cfg' -o -name '.github' -o -name '.gitignore' -o -name '.gitattributes' \) -print | xargs rm -rf || true
 
 fbs:
 	@${RM} -r ./symbol/internal/symbol
