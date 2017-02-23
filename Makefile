@@ -1,39 +1,72 @@
-LLVM_LIBDIR = $(shell llvm-config --libdir)
-# LLVM_LIBDIR = /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib
+# -----------------------------------------------------------------------------
+# Go project environment
+
+# for gitCommit version
 GIT_REVISION = $(shell git rev-parse --short HEAD)
-
-GO_GCFLAGS ?= 
-GO_LDFLAGS := -X "main.Revision=$(GIT_REVISION)"
-
-CGO_CFLAGS ?=
-CGO_LDFLAGS ?= -L$(LLVM_LIBDIR)
-CGO_FLAGS=CGO_CFLAGS='$(CGO_CFLAGS)' CGO_CXXFLAGS='$(CGO_CXXFLAGS)' CGO_LDFLAGS='$(CGO_LDFLAGS)'
-
-GO_BUILD_FLAGS ?=
-GO_TEST_FLAGS := 
 GO_PACKAGES = $(shell go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'symbol/internal')
 
+GO_BUILD_FLAGS := -v
+GO_TEST_FLAGS := -v
 
+GO_GCFLAGS ?= 
+# insert gitCommit version
+GO_LDFLAGS := -X "main.Revision=$(GIT_REVISION)"
+
+# for developer build
 ifneq ($(CLANG_SERVER_DEBUG),)
-	GO_GCFLAGS+= -N -l
-	CGO_CFLAGS+= -g
-	GO_BUILD_FLAGS += -v -x
-	GO_TEST_FLAGS += -v -race
+	GO_BUILD_FLAGS += -x
+endif
+
+# for debugg with debugger
+ifneq ($(CLANG_SERVER_DEBUG_DWARF),)
+	GO_GCFLAGS += -N -l
+	ifeq ($(UNAME),Darwin)
+		# need macOS cgo build debugging
+		GO_LDFLAGS += -linkmode=internal
+	endif
+	CGO_CFLAGS += -g
 else
 	GO_LDFLAGS += -w -s
 	CGO_CFLAGS += -O3
 endif
 
+# -----------------------------------------------------------------------------
+# cgo compile flags
+
+CC = $(shell llvm-config --bindir)/clang
+CXX = $(shell llvm-config --bindir)/clang++
+
+UNAME := $(shell uname)
+LLVM_LIBDIR = $(shell llvm-config --libdir)
+
+# static or dynamic link flags
 ifneq ($(STATIC),)
+	# add 'static' Go build tags for go-clang
 	GO_BUILD_TAGS += static
 
-	LLVM_LIBS := \
+	# add clang supported latest c++ std version and libc++ stdlib
+	CGO_CXXFLAGS += -std=c++1z -stdlib=libc++
+
+	ifeq ($(UNAME),Linux)
+		# darwin ld(64) linker doesn't support "-extldflags='-static'" flag, because that is basicallly for building the xnu kernel.
+		# Also will occur 'not found -crt0.o object file' error.
+		# If install the 'Csu' from the opensource.apple.com, passes -crt0.o error, but needs libpthread.a static library.
+		GO_LDFLAGS += -extldflags=-static
+		# -Bstatic: Do not link against shared libraries.
+		# for statically link the libclang libraries.
+		CGO_LDFLAGS += -Wl,-Bstatic
+	endif
+
+	# add LLVM dependencies static libraries
+	CGO_LDFLAGS += $(shell llvm-config --libfiles --link-static)
+
+	LIBCLANG_STATIC_LIBS := \
 		libclang \
+		libclangAnalysis \
+		libclangApplyReplacements \
 		libclangARCMigrate \
 		libclangAST \
 		libclangASTMatchers \
-		libclangAnalysis \
-		libclangApplyReplacements \
 		libclangBasic \
 		libclangChangeNamespace \
 		libclangCodeGen \
@@ -65,33 +98,49 @@ ifneq ($(STATIC),)
 		libclangTidyCppCoreGuidelinesModule \
 		libclangTidyGoogleModule \
 		libclangTidyLLVMModule \
-		libclangTidyMPIModule \
 		libclangTidyMiscModule \
 		libclangTidyModernizeModule \
+		libclangTidyMPIModule \
 		libclangTidyPerformanceModule \
 		libclangTidyPlugin \
 		libclangTidyReadabilityModule \
+		libclangTidySafetyModule \
 		libclangTidyUtils \
 		libclangTooling \
 		libclangToolingCore \
 		libfindAllSymbols
 
-	LLVM_DEPS := $(shell llvm-config --system-libs)
+	# add libclang static libraries
+	CGO_LDFLAGS += $(foreach lib,$(LIBCLANG_STATIC_LIBS),$(LLVM_LIBDIR)/$(lib).a)
 
-	# TODO(zchee): Support windows
-	GO_OS := $(shell go env GOOS)
-	ifeq ($(GO_OS),linux)
-		# Basically, darwin ld linker flag does not support "-extldflags='-static'" flag, because that for only build the xnu kernel. And will not found -crt0.o object file.
-		# If install the 'Csu' from opensource.apple.com, passes -crt0.o error but needs libpthread.a static library.
-		GO_LDFLAGS += -extldflags=-static
-		CGO_LDFLAGS += -Wl,-Bstatic
-	endif
-	CGO_CXXFLAGS := -std=c++1y -stdlib=libc++
-	CGO_LDFLAGS += $(shell llvm-config --libfiles --link-static) $(foreach lib,$(shell command ls /usr/lib/llvm-3.9/lib/libclang*.a),$(lib)) $(LLVM_DEPS) -L/usr/lib -lc++
-	ifeq ($(GO_OS),linux)
+	ifeq ($(UNAME),Linux)
+		# -Bdynamic: Link against dynamic libraries.
+		# End of libclang static libraries list.
 		CGO_LDFLAGS += -Wl,-Bdynamic
 	endif
+
+	# add LLVM dependency system library. such as libm, ncurses and zlib.
+	CGO_LDFLAGS += $(shell llvm-config --system-libs --link-static)
+
+	# add '-c++' for only Darwin.
+	# avoid 'Undefined symbols for architecture x86_64 "std::__1::__shared_count::__add_shared()"' or etc.
+	CGO_LDFLAGS += $(if $(findstring Darwin,$(UNAME)),-lc++,)
+else
+	# dynamic link build
+	CGO_LDFLAGS += -L$(LLVM_LIBDIR)
+
+	# link against LLVM's libc++ for only Darwin.
+	# avoid link the macOS system libc++ library.
+	ifeq ($(UNAME),Darwin)
+		CGO_CFLAGS += -Wl,-rpath,$(LLVM_LIBDIR)
+		CGO_CXXFLAGS += -Wl,-rpath,$(LLVM_LIBDIR)
+	endif
 endif
+
+CGO_FLAGS = CC="$(CC)" CXX="$(CXX)" CGO_CFLAGS="$(CGO_CFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)"
+
+# -----------------------------------------------------------------------------
+# vendor packages
 
 UNUSED := \
 	vendor/github.com/google/flatbuffers/CMake \
@@ -127,22 +176,22 @@ UNUSED := \
 	vendor/google.golang.org/grpc/testdata \
 	vendor/google.golang.org/grpc/transport/testdata
 
+# -----------------------------------------------------------------------------
+# target
 
 default: build
 
 build:
-	$(CGO_FLAGS) go build -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' ./cmd/clang-server
+	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' ./cmd/clang-server
 
 build-race: GO_BUILD_FLAGS+=-race
 build-race: build
 
 install:
-	$(CGO_FLAGS) go install -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' $(shell go list ./... | grep -v -e 'cmd' -e 'vendor' -e 'builtinheader' -e 'symbol/internal')
+	$(CGO_FLAGS) go install $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' ./cmd/clang-server
 
-run: build
-	LIBCLANG_LOGGING=1 \
-	CC=/usr/local/bin/clang ./clang-server -path /Users/zchee/src/github.com/neovim/neovim
-	# CC=/usr/local/bin/clang ./clang-server -path /Users/zchee/src/github.com/tmux/tmux
+run: build clean/cache
+	./clang-server -path /Users/zchee/src/github.com/ccache/ccache
 
 run-race: GO_BUILD_FLAGS+=-race
 run-race: run
@@ -155,18 +204,6 @@ lint:
 
 vet:
 	go vet -v -race $(GO_PACKAGES)
-
-prof/cpu:
-	go tool pprof -top -cum clang-server cpu.pprof
-
-prof/mem:
-	go tool pprof -top -cum clang-server mem.pprof
-
-prof/block:
-	go tool pprof -top -cum clang-server block.pprof
-
-prof/trace:
-	go tool pprof -top -cum clang-server trace.pprof
 
 vendor/install:
 	$(CGO_FLAGS) go install -v -x -tags '$(GO_BUILD_TAGS)' $(shell go list ./vendor/...)
@@ -186,16 +223,26 @@ fbs:
 	flatc --go --grpc $(shell find ./symbol -type f -name '*.fbs')
 	@gofmt -w ./symbol/internal/symbol
 
+prof/cpu:
+	go tool pprof -top -cum clang-server cpu.pprof
+
+prof/mem:
+	go tool pprof -top -cum clang-server mem.pprof
+
+prof/block:
+	go tool pprof -top -cum clang-server block.pprof
+
+prof/trace:
+	go tool pprof -top -cum clang-server trace.pprof
+
 clang-format:
 	clang-format -i -sort-includes $(shell find testdata -type f -name '*.c' -or -name '*.cpp')
-
-serve: clean build
-	./clang-server
 
 clean:
 	${RM} clang-server *.pprof
 
-clean/cache:
-	${RM} -r $(XDG_CACHE_HOME)/clang-server/
+clean/cachedir:
+	${RM} -r $(XDG_CACHE_HOME)/clang-server
 
-.PHONY: build install run test lint vet glide vendor/restore vendor/install vendor/update vendor/clean fbs clang-format serve clean clean/db
+
+.PHONY: build install run test lint vet glide vendor/restore vendor/install vendor/update vendor/clean fbs clang-format clean clean/cachedir
