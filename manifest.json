@@ -21,6 +21,9 @@
         "github.com/tmthrgd/go-hex": {
             "branch": "master"
         },
+        "github.com/zchee/go-xdgbasedir": {
+            "branch": "master"
+        },
         "golang.org/x/net": {
             "branch": "master"
         },
