@@ -22,9 +22,6 @@ import (
 // DefaultJSONName default of compile_commands.json filename.
 const DefaultJSONName = "compile_commands.json"
 
-// ErrNotFound error of not found the compile_commands.json file.
-var ErrNotFound = errors.New("couldn't find the compile_commands.json")
-
 // CompilationDatabase represents a consist of an array of “command objects”,
 // where each command object specifies one way a translation unit is compiled in the project.
 type CompilationDatabase struct {
@@ -82,7 +79,7 @@ func (c *CompilationDatabase) Parse(jsonfile string, pathRange []string) error {
 	}
 	dir := c.findJSONFile(jsonfile, pathRange)
 	if dir == "" {
-		return ErrNotFound
+		return errors.Errorf("couldn't find the %s", jsonfile)
 	}
 
 	cErr, cd := clang.FromDirectory(dir)
