@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-clang/v3.9/clang"
 	"github.com/pkg/errors"
+	"github.com/pkgutil/osutil"
 	"github.com/pkgutil/stringsutil"
 	"github.com/zchee/clang-server/compilationdatabase"
 	"github.com/zchee/clang-server/indexdb"
@@ -106,7 +107,7 @@ func NewParser(path string, config Config) *Parser {
 // CreateBulitinHeaders creates(dumps) a clang builtin header to cache directory.
 func CreateBulitinHeaders() error {
 	builtinHdrDir := filepath.Join(pathutil.CacheDir(), "clang", "include")
-	if !pathutil.IsExist(builtinHdrDir) {
+	if !osutil.IsExist(builtinHdrDir) {
 		if err := os.MkdirAll(builtinHdrDir, 0700); err != nil {
 			return errors.WithStack(err)
 		}
