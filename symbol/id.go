@@ -16,8 +16,14 @@ func (id ID) String() string {
 	return hashutil.EncodeToString(id)
 }
 
+// Bytes reterun the ID byte slice.
 func (id ID) Bytes() []byte {
 	return id[:]
+}
+
+// IsEmpty reports whether id is empty.
+func (id ID) IsEmpty() bool {
+	return len(id) == 0
 }
 
 // FileID id of filename with blake2b hash.
@@ -27,14 +33,15 @@ func (id FileID) String() string {
 	return hashutil.EncodeToString(id)
 }
 
+// Bytes reterun the FileID byte slice.
 func (id FileID) Bytes() []byte {
 	return id[:]
 }
 
-var (
-	NoID     ID     = [64]byte{} // empty
-	NoFileID FileID = [64]byte{} // empty
-)
+// IsEmpty reports whether id is empty.
+func (id FileID) IsEmpty() bool {
+	return len(id) == 0
+}
 
 // ToID converts the string to blake2b sum512 hash.
 func ToID(s string) ID {
