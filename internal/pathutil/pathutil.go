@@ -41,10 +41,8 @@ func ProjectCacheDir(root string) string {
 func ProjectASTDir(root string) string {
 	cacheDir := ProjectCacheDir(root)
 	astDir := filepath.Join(cacheDir, "ast")
-	if osutil.IsNotExist(astDir) {
-		if err := os.MkdirAll(astDir, 0755); err != nil {
-			log.Fatal(err)
-		}
+	if err := osutil.MkdirAll(astDir, 0755); err != nil {
+		log.Fatal(err)
 	}
 	return astDir
 }
