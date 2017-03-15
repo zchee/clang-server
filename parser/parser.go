@@ -142,6 +142,8 @@ func CreateBulitinHeaders() error {
 
 // Parse parses the project directories.
 func (p *Parser) Parse() {
+	defer p.db.Close()
+
 	ccs := p.cd.CompileCommands()
 	if len(ccs) == 0 {
 		log.Fatal("not walk")
