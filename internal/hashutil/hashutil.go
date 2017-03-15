@@ -22,13 +22,14 @@ func NewHashString(s string) [blake2b.Size]byte {
 	return blake2b.Sum512(UnsafeBytes(s))
 }
 
+// Encode returns the hexadecimal encoded byte slice of blake2b hashed b.
 func Encode(b [blake2b.Size]byte) []byte {
 	dst := make([]byte, hex.EncodedLen(len(b)))
 	hex.Encode(dst, b[:])
 	return dst
 }
 
-// EncodeToString returns the hexadecimal encoding of blake2b hashed b.
+// EncodeToString returns the hexadecimal encoded string of blake2b hashed b.
 func EncodeToString(b [blake2b.Size]byte) string {
 	return hex.EncodeToString(b[:])
 }
