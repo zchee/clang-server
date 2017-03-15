@@ -34,6 +34,17 @@ func NewIndexDB(root string) (*IndexDB, error) {
 	}, nil
 }
 
+func (i *IndexDB) Open(path string) (*IndexDB, error) {
+	dir := pathutil.ProjectCacheDir(path)
+	db, err := leveldb.OpenFile(filepath.Join(dir, index), nil)
+	if err != nil {
+		return nil, err
+	}
+	return &IndexDB{
+		db: db,
+	}, nil
+}
+
 func (i *IndexDB) Close() error {
 	return i.db.Close()
 }
