@@ -29,6 +29,7 @@ func CacheDir() string {
 	return dir
 }
 
+// ProjectCacheDir return the project path based cache directory path.
 func ProjectCacheDir(root string) string {
 	// assume the absolude directory path
 	id := hashutil.NewHashString(root)
@@ -36,6 +37,7 @@ func ProjectCacheDir(root string) string {
 	return dir
 }
 
+// ProjectASTDir return the project path based AST cache directory path.
 func ProjectASTDir(root string) string {
 	cacheDir := ProjectCacheDir(root)
 	astDir := filepath.Join(cacheDir, "ast")
