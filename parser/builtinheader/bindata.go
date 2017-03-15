@@ -100,7 +100,8 @@
 // sanitizer/tsan_interface_atomic.h
 // DO NOT EDIT!
 
-// +build !3.9.1,!5.0.0
+// +build !3.9.1
+// +build !5.0.0
 
 package builtinheader
 
