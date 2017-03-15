@@ -33,7 +33,7 @@ func CacheDir() string {
 func ProjectCacheDir(root string) string {
 	// assume the absolude directory path
 	id := hashutil.NewHashString(root)
-	dir := filepath.Join(CacheDir(), filepath.Base(root)+"."+hashutil.EncodeToString(id))
+	dir := filepath.Join(CacheDir(), fmt.Sprintf("%s.%s", filepath.Base(root), hashutil.EncodeToString(id)))
 	return dir
 }
 
