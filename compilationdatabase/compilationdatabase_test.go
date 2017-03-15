@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
-
-	"github.com/go-clang/v3.9/clang"
 )
 
 func TestNewCompilationDatabase(t *testing.T) {
@@ -45,9 +43,7 @@ func TestNewCompilationDatabase(t *testing.T) {
 
 func TestCompilationDatabase_findJSONFile(t *testing.T) {
 	type fields struct {
-		root  string
-		cd    clang.CompilationDatabase
-		flags map[string][]string
+		root string
 	}
 	type args struct {
 		filename  string
