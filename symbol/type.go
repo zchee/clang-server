@@ -434,6 +434,6 @@ func (l *Location) serialize(builder *flatbuffers.Builder) flatbuffers.UOffsetT 
 }
 
 // TODO(zchee): avoid reflection
-func (l Location) isExist() bool {
+func (l *Location) isExist() bool {
 	return !reflect.DeepEqual(l, Location{})
 }
