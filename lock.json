@@ -1,5 +1,5 @@
 {
-    "memo": "cf7fa6dadb3ab38ce66bdf86e358e5e336176ae88f74b20b0b8eab4cc1c7a32b",
+    "memo": "24d49d82c8a34e2190619cc581271418c9ccdbeb96020c39f1c5d3ad0d5d5fbe",
     "projects": [
         {
             "name": "github.com/go-clang/v3.9",
@@ -50,9 +50,9 @@
             ]
         },
         {
-            "name": "github.com/pkgutil/filepathutil",
+            "name": "github.com/pkgutil/osutil",
             "branch": "master",
-            "revision": "2fb27fe0357ccf5b228716a38dd92c4fdc4442eb",
+            "revision": "2114b006ce9b46aab99fc7c623940ae0b81bcf3d",
             "packages": [
                 "."
             ]
