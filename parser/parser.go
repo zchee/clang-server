@@ -5,6 +5,7 @@
 package parser
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -188,30 +189,19 @@ func (p *Parser) ParseFile(arg parseArg) error {
 	var tu clang.TranslationUnit
 
 	if p.db.Has(arg.filename) {
-		tmpFile, err := ioutil.TempFile(os.TempDir(), filepath.Base(arg.filename))
-		if err != nil {
-			return err
-		}
-
 		buf, err := p.db.Get(arg.filename)
 		if err != nil {
 			return err
 		}
-		file := symbol.GetRootAsFile(buf, 0)
-		tmpFile.Write(file.TranslationUnit())
 
-		log.Printf("out.Name(): %+v\n", file.Name())
-		if cErr := p.idx.TranslationUnit2(tmpFile.Name(), &tu); clang.ErrorCode(cErr) != clang.Error_Success {
-			log.Print("reparse")
-			if cErr := p.idx.ParseTranslationUnit2(arg.filename, arg.flag, nil, p.clangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
-				return errors.New(clang.ErrorCode(cErr).Spelling())
-			}
+		tu, err = deserializeTranslationUnit(p.idx, buf)
+		if err != nil {
+			return err
 		}
 		defer tu.Dispose()
 
-		log.Printf("tu.Spelling(): %T => %+v\n", tu.Spelling(), tu.Spelling())
+		log.Printf("tu.Spelling(): %T => %+v\n", tu.Spelling(), tu.Spelling()) // for debug
 
-		os.Remove(tmpFile.Name())
 		return nil
 	}
 
@@ -312,6 +302,24 @@ func serializeTranslationUnit(filename string, tu clang.TranslationUnit) []byte 
 	os.Remove(tmpFile.Name())
 
 	return buf
+}
+
+func deserializeTranslationUnit(idx clang.Index, buf []byte) (clang.TranslationUnit, error) {
+	var tu clang.TranslationUnit
+
+	tmpfile, err := ioutil.TempFile(os.TempDir(), "clang-server")
+	if err != nil {
+		return tu, err
+	}
+	binary.Write(tmpfile, binary.LittleEndian, buf)
+
+	if err := idx.TranslationUnit2(tmpfile.Name(), &tu); clang.ErrorCode(err) != clang.Error_Success {
+		return tu, errors.New(err.Spelling())
+	}
+	// finished create a translation unit from an AST file, remove tmpfile
+	os.Remove(tmpfile.Name())
+
+	return tu, nil
 }
 
 // ClangVersion return the current clang version.
