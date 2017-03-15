@@ -32,12 +32,12 @@ type CompilationDatabase struct {
 
 	cd             clang.CompilationDatabase
 	cmds           []*CompileCommand
-	CompilerConfig *compilerConfig
+	CompilerConfig *CompilerConfig
 
 	mu sync.Mutex
 }
 
-type compilerConfig struct {
+type CompilerConfig struct {
 	Target              string
 	ThreadModel         string
 	InstalledDir        string
@@ -73,7 +73,7 @@ func NewCompilationDatabase(root string) *CompilationDatabase {
 // Parse parses the project root directory recursively, and cache the compile
 // flags to flags map.
 func (c *CompilationDatabase) Parse(jsonfile string, pathRange []string) error {
-	ch := make(chan *compilerConfig, 1)
+	ch := make(chan *CompilerConfig, 1)
 	go func() { ch <- c.DefaultCompilerConfig() }()
 
 	if jsonfile == "" {
@@ -126,7 +126,7 @@ func (c *CompilationDatabase) CompileCommands() []*CompileCommand {
 //   /System/Library/Frameworks (framework directory)
 //   /Library/Frameworks (framework directory)
 //  End of search list.
-func (c *CompilationDatabase) DefaultCompilerConfig() *compilerConfig {
+func (c *CompilationDatabase) DefaultCompilerConfig() *CompilerConfig {
 	cc := "clang" // default is clang
 	if envCC := os.Getenv("CC"); envCC != "" {
 		cc = envCC
@@ -146,7 +146,7 @@ func (c *CompilationDatabase) DefaultCompilerConfig() *compilerConfig {
 		log.Fatal(err)
 	}
 
-	cfg := new(compilerConfig)
+	cfg := new(CompilerConfig)
 	var includeSection bool
 	scan := bufio.NewScanner(&b)
 	for scan.Scan() {
