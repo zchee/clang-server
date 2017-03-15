@@ -37,6 +37,7 @@ type CompilationDatabase struct {
 	mu sync.Mutex
 }
 
+// CompilerConfig represents a clang compiler configs.
 type CompilerConfig struct {
 	Target              string
 	ThreadModel         string
