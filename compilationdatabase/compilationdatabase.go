@@ -16,7 +16,7 @@ import (
 
 	"github.com/go-clang/v3.9/clang"
 	"github.com/pkg/errors"
-	"github.com/zchee/clang-server/internal/pathutil"
+	"github.com/pkgutil/osutil"
 )
 
 // DefaultJSONName default of compile_commands.json filename.
@@ -201,7 +201,7 @@ func (c *CompilationDatabase) findJSONFile(filename string, pathRange []string) 
 	pathCh := make(chan string, 1)
 	for _, d := range pathRange {
 		go func(d string) {
-			if pathutil.IsExist(filepath.Join(d, filename)) {
+			if osutil.IsExist(filepath.Join(d, filename)) {
 				log.Printf("found filepath: %s", filepath.Join(d, filename))
 				pathCh <- d
 			}
@@ -332,7 +332,7 @@ func (c *CompilationDatabase) fixArg(arg, buildDir string) string {
 	}
 
 	for _, d := range []string{buildDir, c.root} {
-		if dir := filepath.Join(d, arg); pathutil.IsExist(dir) {
+		if dir := filepath.Join(d, arg); osutil.IsExist(dir) {
 			return dir
 		}
 	}
