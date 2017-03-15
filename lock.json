@@ -103,7 +103,7 @@
         {
             "name": "github.com/zchee/go-xdgbasedir",
             "branch": "master",
-            "revision": "6bd33da7ec720657ab9c3e3b997ac0fb189310e2",
+            "revision": "e38ffd0912140d351e7e0d99614117e0c6fa6fec",
             "packages": [
                 ".",
                 "home"
