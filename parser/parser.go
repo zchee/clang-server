@@ -281,15 +281,15 @@ func (p *Parser) ParseFile(arg parseArg) error {
 
 	rootCursor.Visit(visitNode)
 	file.AddTranslationUnit(<-tuch)
-
 	buf := file.Serialize()
-	out := symbol.GetRootAsFile(buf, 0)
+
+	out := symbol.GetRootAsFile(buf.FinishedBytes(), 0)
 	printFile(out) // for debug
 
 	log.Printf("Goroutine:%d", runtime.NumGoroutine())
 	fmt.Printf("\n================== DONE: filename: %+v ==================\n\n\n", arg.filename)
 
-	return p.db.Put(arg.filename, buf)
+	return p.db.Put(arg.filename, buf.FinishedBytes())
 }
 
 // serializeTranslationUnit selialize the TranslationUnit to Clang serialized representation.

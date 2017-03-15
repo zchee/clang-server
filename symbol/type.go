@@ -158,7 +158,7 @@ func (f *File) AddCaller(sym, def Location, funcCall bool) {
 }
 
 // Serialize serializes the File.
-func (f *File) Serialize() []byte {
+func (f *File) Serialize() *flatbuffers.Builder {
 	fname := f.builder.CreateString(f.name)
 	tu := f.builder.CreateByteString(f.translationUnit)
 
@@ -192,7 +192,7 @@ func (f *File) Serialize() []byte {
 
 	f.builder.Finish(symbol.FileEnd(f.builder))
 
-	return f.builder.FinishedBytes()
+	return f.builder
 }
 
 // ----------------------------------------------------------------------------
