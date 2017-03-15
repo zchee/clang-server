@@ -37,6 +37,7 @@ type File struct {
 	file *symbol.File
 }
 
+// NewFile return the new File.
 func NewFile(name string) *File {
 	return &File{
 		name:      name,
@@ -46,20 +47,24 @@ func NewFile(name string) *File {
 	}
 }
 
+// GetRootAsFile gets the root of flatbuffers binary.
 func GetRootAsFile(buf []byte, offset flatbuffers.UOffsetT) *File {
 	return &File{
 		file: symbol.GetRootAsFile(buf, offset),
 	}
 }
 
+// Name return the filename.
 func (f *File) Name() string {
 	return string(f.file.Name())
 }
 
+// TranslationUnit return the libclang translation unit data.
 func (f *File) TranslationUnit() []byte {
 	return f.file.TranslationUnit()
 }
 
+// Symbols return the C/C++ files symbols.
 func (f *File) Symbols() []*Info {
 	n := f.file.SymbolsLength()
 	symbols := make([]*Info, n)
@@ -74,6 +79,7 @@ func (f *File) Symbols() []*Info {
 	return symbols
 }
 
+// Header return the C/C++ files included header files.
 func (f *File) Header() []*Header {
 	n := f.file.HeadersLength()
 	hedears := make([]*Header, n)
@@ -88,6 +94,7 @@ func (f *File) Header() []*Header {
 	return hedears
 }
 
+// AddTranslationUnit add TranslationUnit data to File.
 func (f *File) AddTranslationUnit(buf []byte) {
 	f.translationUnit = buf
 }
@@ -256,10 +263,12 @@ func (info *Info) serialize(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return symbol.InfoEnd(builder)
 }
 
+// ID return the symbol ID which hashed blake2b.
 func (info *Info) ID() ID {
 	return ToID(string(info.info.ID()))
 }
 
+// Decls return the symbol declarations information.
 func (info *Info) Decls() []Location {
 	n := info.info.DeclsLength()
 	decls := make([]Location, n)
@@ -274,6 +283,7 @@ func (info *Info) Decls() []Location {
 	return decls
 }
 
+// Def return the symbol definition information.
 func (info *Info) Def() Location {
 	obj := new(symbol.Location)
 	info.info.Def(obj)
@@ -281,6 +291,7 @@ func (info *Info) Def() Location {
 	return Location{location: obj}
 }
 
+// Callers return the symbol callers information.
 func (info *Info) Callers() []*Caller {
 	n := info.info.CallersLength()
 	callers := make([]*Caller, n)
@@ -310,14 +321,17 @@ type Header struct {
 	header *symbol.Header
 }
 
+// FileID return the header FileID.
 func (h *Header) FileID() FileID {
 	return ToFileID(string(h.header.FileID()))
 }
 
+// Mtime return the header modified time.
 func (h *Header) Mtime() int64 {
 	return h.header.Mtime()
 }
 
+// serialize serializes the h data to flatbuffers.UOffsetT.
 func (h *Header) serialize(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	fid := builder.CreateString(h.fileid.String())
 
@@ -344,6 +358,7 @@ type Caller struct {
 	caller *symbol.Caller
 }
 
+// Location return the location of caller function.
 func (c *Caller) Location() Location {
 	obj := new(symbol.Location)
 	c.caller.Location(obj)
@@ -351,10 +366,12 @@ func (c *Caller) Location() Location {
 	return Location{location: obj}
 }
 
+// FuncCall reports whether caller is function call.
 func (c *Caller) FuncCall() bool {
 	return c.caller.FuncCall() != 0
 }
 
+// serialize serializes the c data to flatbuffers.UOffsetT.
 func (c *Caller) serialize(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	locOffset := c.location.serialize(builder)
 
@@ -392,6 +409,7 @@ type Location struct {
 	location *symbol.Location
 }
 
+// FileName return the filename of location.
 func (l *Location) FileName() string {
 	if l.location == nil {
 		return l.fileName
@@ -399,18 +417,22 @@ func (l *Location) FileName() string {
 	return string(l.location.FileName())
 }
 
+// Line return the line number of symbol location.
 func (l *Location) Line() uint32 {
 	return l.location.Line()
 }
 
+// Col return the column number of symbol location.
 func (l *Location) Col() uint32 {
 	return l.location.Col()
 }
 
+// Offset return the byte offset of symbol location.
 func (l *Location) Offset() uint32 {
 	return l.location.Offset()
 }
 
+// USR return the Unified Symbol Resolution of symbol.
 func (l *Location) USR() string {
 	if l.location == nil {
 		return l.usr
@@ -418,6 +440,7 @@ func (l *Location) USR() string {
 	return string(l.location.USR())
 }
 
+// serialize serializes the l data to flatbuffers.UOffsetT.
 func (l *Location) serialize(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	fname := builder.CreateString(l.fileName)
 	usr := builder.CreateString(l.usr)
