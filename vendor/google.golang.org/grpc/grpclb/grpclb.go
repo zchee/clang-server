@@ -39,6 +39,8 @@ package grpclb
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"net"
 	"sync"
 	"time"
 
@@ -95,6 +97,7 @@ type addrInfo struct {
 
 type balancer struct {
 	r        naming.Resolver
+	target   string
 	mu       sync.Mutex
 	seq      int // a sequence number to make sure addrCh does not get stale addresses.
 	w        naming.Watcher
@@ -105,9 +108,10 @@ type balancer struct {
 	waitCh   chan struct{}
 	done     bool
 	expTimer *time.Timer
+	rand     *rand.Rand
 }
 
-func (b *balancer) watchAddrUpdates(w naming.Watcher, ch chan remoteBalancerInfo) error {
+func (b *balancer) watchAddrUpdates(w naming.Watcher, ch chan []remoteBalancerInfo) error {
 	updates, err := w.Next()
 	if err != nil {
 		return err
@@ -116,10 +120,6 @@ func (b *balancer) watchAddrUpdates(w naming.Watcher, ch chan remoteBalancerInfo
 	defer b.mu.Unlock()
 	if b.done {
 		return grpc.ErrClientConnClosing
-	}
-	var bAddr remoteBalancerInfo
-	if len(b.rbs) > 0 {
-		bAddr = b.rbs[0]
 	}
 	for _, update := range updates {
 		switch update.Op {
@@ -169,16 +169,11 @@ func (b *balancer) watchAddrUpdates(w naming.Watcher, ch chan remoteBalancerInfo
 	}
 	// TODO: Fall back to the basic round-robin load balancing if the resulting address is
 	// not a load balancer.
-	if len(b.rbs) > 0 {
-		// For simplicity, always use the first one now. May revisit this decision later.
-		if b.rbs[0] != bAddr {
-			select {
-			case <-ch:
-			default:
-			}
-			ch <- b.rbs[0]
-		}
+	select {
+	case <-ch:
+	default:
 	}
+	ch <- b.rbs
 	return nil
 }
 
@@ -217,7 +212,7 @@ func (b *balancer) processServerList(l *lbpb.ServerList, seq int) {
 	for _, s := range servers {
 		md := metadata.Pairs("lb-token", s.LoadBalanceToken)
 		addr := grpc.Address{
-			Addr:     fmt.Sprintf("%s:%d", s.IpAddress, s.Port),
+			Addr:     fmt.Sprintf("%s:%d", net.IP(s.IpAddress), s.Port),
 			Metadata: &md,
 		}
 		sl = append(sl, &addrInfo{
@@ -252,7 +247,7 @@ func (b *balancer) processServerList(l *lbpb.ServerList, seq int) {
 func (b *balancer) callRemoteBalancer(lbc lbpb.LoadBalancerClient, seq int) (retry bool) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	stream, err := lbc.BalanceLoad(ctx, grpc.FailFast(false))
+	stream, err := lbc.BalanceLoad(ctx)
 	if err != nil {
 		grpclog.Printf("Failed to perform RPC to the remote balancer %v", err)
 		return
@@ -265,7 +260,9 @@ func (b *balancer) callRemoteBalancer(lbc lbpb.LoadBalancerClient, seq int) (ret
 	b.mu.Unlock()
 	initReq := &lbpb.LoadBalanceRequest{
 		LoadBalanceRequestType: &lbpb.LoadBalanceRequest_InitialRequest{
-			InitialRequest: new(lbpb.InitialLoadBalanceRequest),
+			InitialRequest: &lbpb.InitialLoadBalanceRequest{
+				Name: b.target,
+			},
 		},
 	}
 	if err := stream.Send(initReq); err != nil {
@@ -310,10 +307,12 @@ func (b *balancer) callRemoteBalancer(lbc lbpb.LoadBalancerClient, seq int) (ret
 }
 
 func (b *balancer) Start(target string, config grpc.BalancerConfig) error {
+	b.rand = rand.New(rand.NewSource(time.Now().Unix()))
 	// TODO: Fall back to the basic direct connection if there is no name resolver.
 	if b.r == nil {
 		return errors.New("there is no name resolver installed")
 	}
+	b.target = target
 	b.mu.Lock()
 	if b.done {
 		b.mu.Unlock()
@@ -327,32 +326,98 @@ func (b *balancer) Start(target string, config grpc.BalancerConfig) error {
 	}
 	b.w = w
 	b.mu.Unlock()
-	balancerAddrCh := make(chan remoteBalancerInfo, 1)
+	balancerAddrsCh := make(chan []remoteBalancerInfo, 1)
 	// Spawn a goroutine to monitor the name resolution of remote load balancer.
 	go func() {
 		for {
-			if err := b.watchAddrUpdates(w, balancerAddrCh); err != nil {
+			if err := b.watchAddrUpdates(w, balancerAddrsCh); err != nil {
 				grpclog.Printf("grpc: the naming watcher stops working due to %v.\n", err)
-				close(balancerAddrCh)
+				close(balancerAddrsCh)
 				return
 			}
 		}
 	}()
 	// Spawn a goroutine to talk to the remote load balancer.
 	go func() {
-		var cc *grpc.ClientConn
-		for {
-			rb, ok := <-balancerAddrCh
+		var (
+			cc *grpc.ClientConn
+			// ccError is closed when there is an error in the current cc.
+			// A new rb should be picked from rbs and connected.
+			ccError chan struct{}
+			rb      *remoteBalancerInfo
+			rbs     []remoteBalancerInfo
+			rbIdx   int
+		)
+
+		defer func() {
+			if ccError != nil {
+				select {
+				case <-ccError:
+				default:
+					close(ccError)
+				}
+			}
 			if cc != nil {
 				cc.Close()
 			}
-			if !ok {
-				// b is closing.
-				return
+		}()
+
+		for {
+			var ok bool
+			select {
+			case rbs, ok = <-balancerAddrsCh:
+				if !ok {
+					return
+				}
+				foundIdx := -1
+				if rb != nil {
+					for i, trb := range rbs {
+						if trb == *rb {
+							foundIdx = i
+							break
+						}
+					}
+				}
+				if foundIdx >= 0 {
+					if foundIdx >= 1 {
+						// Move the address in use to the beginning of the list.
+						b.rbs[0], b.rbs[foundIdx] = b.rbs[foundIdx], b.rbs[0]
+						rbIdx = 0
+					}
+					continue // If found, don't dial new cc.
+				} else if len(rbs) > 0 {
+					// Pick a random one from the list, instead of always using the first one.
+					if l := len(rbs); l > 1 && rb != nil {
+						tmpIdx := b.rand.Intn(l - 1)
+						b.rbs[0], b.rbs[tmpIdx] = b.rbs[tmpIdx], b.rbs[0]
+					}
+					rbIdx = 0
+					rb = &rbs[0]
+				} else {
+					// foundIdx < 0 && len(rbs) <= 0.
+					rb = nil
+				}
+			case <-ccError:
+				ccError = nil
+				if rbIdx < len(rbs)-1 {
+					rbIdx++
+					rb = &rbs[rbIdx]
+				} else {
+					rb = nil
+				}
+			}
+
+			if rb == nil {
+				continue
+			}
+
+			if cc != nil {
+				cc.Close()
 			}
 			// Talk to the remote load balancer to get the server list.
 			var err error
 			creds := config.DialCreds
+			ccError = make(chan struct{})
 			if creds == nil {
 				cc, err = grpc.Dial(rb.addr, grpc.WithInsecure())
 			} else {
@@ -366,22 +431,24 @@ func (b *balancer) Start(target string, config grpc.BalancerConfig) error {
 			}
 			if err != nil {
 				grpclog.Printf("Failed to setup a connection to the remote balancer %v: %v", rb.addr, err)
-				return
+				close(ccError)
+				continue
 			}
 			b.mu.Lock()
 			b.seq++ // tick when getting a new balancer address
 			seq := b.seq
 			b.next = 0
 			b.mu.Unlock()
-			go func(cc *grpc.ClientConn) {
+			go func(cc *grpc.ClientConn, ccError chan struct{}) {
 				lbc := lbpb.NewLoadBalancerClient(cc)
-				for {
-					if retry := b.callRemoteBalancer(lbc, seq); !retry {
-						cc.Close()
-						return
-					}
+				b.callRemoteBalancer(lbc, seq)
+				cc.Close()
+				select {
+				case <-ccError:
+				default:
+					close(ccError)
 				}
-			}(cc)
+			}(cc, ccError)
 		}
 	}()
 	return nil
