@@ -1,0 +1,44 @@
+
+[[dependencies]]
+  branch = "master"
+  name = "github.com/go-clang/v3.9"
+
+[[dependencies]]
+  branch = "master"
+  name = "github.com/google/flatbuffers"
+
+[[dependencies]]
+  branch = "master"
+  name = "github.com/minio/blake2b-simd"
+
+[[dependencies]]
+  branch = "master"
+  name = "github.com/pkg/errors"
+
+[[dependencies]]
+  branch = "master"
+  name = "github.com/pkgutil/osutil"
+
+[[dependencies]]
+  branch = "master"
+  name = "github.com/pkgutil/stringsutil"
+
+[[dependencies]]
+  branch = "master"
+  name = "github.com/syndtr/goleveldb"
+
+[[dependencies]]
+  branch = "master"
+  name = "github.com/tmthrgd/go-hex"
+
+[[dependencies]]
+  branch = "master"
+  name = "github.com/zchee/go-xdgbasedir"
+
+[[dependencies]]
+  branch = "master"
+  name = "golang.org/x/net"
+
+[[dependencies]]
+  branch = "master"
+  name = "google.golang.org/grpc"

@@ -1,0 +1,97 @@
+memo = "5cdea662115c9d57e55e9faef51207a12b4416a8ce590de257f00fa5e5c94124"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/go-clang/v3.9"
+  packages = ["clang"]
+  revision = "672a03cec7596e03cfecaaf8139021eb5a5f1097"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/golang/protobuf"
+  packages = ["proto","ptypes/any"]
+  revision = "c9c7427a2a70d2eb3bafa0ab2dc163e45f143317"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  revision = "d9eb7a3d35ec988b8585d4a0068e462c27d28380"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/google/flatbuffers"
+  packages = ["go"]
+  revision = "7f2a1c90d5ac142d1f9230fc32aa455781681aee"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/minio/blake2b-simd"
+  packages = ["."]
+  revision = "3f5f724cb5b182a5c278d6d3d55b40e7f8c2efb4"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "ff09b135c25aae272398c51a07235b90a75aa4f0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/pkgutil/osutil"
+  packages = ["."]
+  revision = "2114b006ce9b46aab99fc7c623940ae0b81bcf3d"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/pkgutil/stringsutil"
+  packages = ["."]
+  revision = "2011ad9215062785f1379c0ed255576af17dd31e"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/syndtr/goleveldb"
+  packages = ["leveldb","leveldb/cache","leveldb/comparer","leveldb/errors","leveldb/filter","leveldb/iterator","leveldb/journal","leveldb/memdb","leveldb/opt","leveldb/storage","leveldb/table","leveldb/util"]
+  revision = "6b4daa5362b502898ddf367c5c11deb9e7a5c727"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/tmthrgd/asm"
+  packages = ["."]
+  revision = "da148a91f261dc0471d0c1c6aacf38c6e4d0eed0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/tmthrgd/go-hex"
+  packages = ["."]
+  revision = "e648309466c4639fec0373f9565eeec831b58a34"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/zchee/go-xdgbasedir"
+  packages = [".","home"]
+  revision = "9e3b9735d059747e24923def768d235d9df86b21"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/net"
+  packages = ["context","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
+  revision = "5602c733f70afc6dcec6766be0d5034d4c4f14de"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/text"
+  packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
+  revision = "f4b4367115ec2de254587813edaa901bc1c723a8"
+
+[[projects]]
+  branch = "master"
+  name = "google.golang.org/genproto"
+  packages = ["googleapis/rpc/status"]
+  revision = "de9f5e90fe9b278809363f08c2072d2f2a429de7"
+
+[[projects]]
+  branch = "master"
+  name = "google.golang.org/grpc"
+  packages = [".","codes","credentials","grpclog","internal","keepalive","metadata","naming","peer","stats","status","tap","transport"]
+  revision = "72b617aacebed7836e806925e6f61eef55cb40c8"
