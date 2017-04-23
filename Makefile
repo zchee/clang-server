@@ -4,6 +4,7 @@
 # for gitCommit version
 GIT_REVISION = $(shell git rev-parse --short HEAD)
 GO_PACKAGES = $(shell go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'symbol/internal')
+GO_VENDOR_PACKAGES = $(shell go list ./vendor/...)
 
 GO_BUILD_FLAGS := -v
 GO_TEST_FLAGS := -v
@@ -11,6 +12,8 @@ GO_TEST_FLAGS := -v
 GO_GCFLAGS ?= 
 # insert gitCommit version
 GO_LDFLAGS := -X "main.Revision=$(GIT_REVISION)"
+
+CGO_CFLAGS = -Wdeprecated-declarations
 
 # for developer build
 ifneq ($(CLANG_SERVER_DEBUG),)
@@ -41,90 +44,7 @@ LLVM_LIBDIR = $(shell llvm-config --libdir)
 
 # static or dynamic link flags
 ifneq ($(STATIC),)
-	# add 'static' Go build tags for go-clang
-	GO_BUILD_TAGS += static
-
-	# add clang supported latest c++ std version and libc++ stdlib
-	CGO_CXXFLAGS += -std=c++1z -stdlib=libc++
-
-	ifeq ($(UNAME),Linux)
-		# darwin ld(64) linker doesn't support "-extldflags='-static'" flag, because that is basicallly for building the xnu kernel.
-		# Also will occur 'not found -crt0.o object file' error.
-		# If install the 'Csu' from the opensource.apple.com, passes -crt0.o error, but needs libpthread.a static library.
-		GO_LDFLAGS += -extldflags=-static
-		# -Bstatic: Do not link against shared libraries.
-		# for statically link the libclang libraries.
-		CGO_LDFLAGS += -Wl,-Bstatic
-	endif
-
-	# add LLVM dependencies static libraries
-	CGO_LDFLAGS += $(shell llvm-config --libfiles --link-static)
-
-	LIBCLANG_STATIC_LIBS := \
-		libclang \
-		libclangAnalysis \
-		libclangApplyReplacements \
-		libclangARCMigrate \
-		libclangAST \
-		libclangASTMatchers \
-		libclangBasic \
-		libclangChangeNamespace \
-		libclangCodeGen \
-		libclangDriver \
-		libclangDynamicASTMatchers \
-		libclangEdit \
-		libclangFormat \
-		libclangFrontend \
-		libclangFrontendTool \
-		libclangIncludeFixer \
-		libclangIncludeFixerPlugin \
-		libclangIndex \
-		libclangLex \
-		libclangMove \
-		libclangParse \
-		libclangQuery \
-		libclangRename \
-		libclangReorderFields \
-		libclangRewrite \
-		libclangRewriteFrontend \
-		libclangSema \
-		libclangSerialization \
-		libclangStaticAnalyzerCheckers \
-		libclangStaticAnalyzerCore \
-		libclangStaticAnalyzerFrontend \
-		libclangTidy \
-		libclangTidyBoostModule \
-		libclangTidyCERTModule \
-		libclangTidyCppCoreGuidelinesModule \
-		libclangTidyGoogleModule \
-		libclangTidyLLVMModule \
-		libclangTidyMiscModule \
-		libclangTidyModernizeModule \
-		libclangTidyMPIModule \
-		libclangTidyPerformanceModule \
-		libclangTidyPlugin \
-		libclangTidyReadabilityModule \
-		libclangTidySafetyModule \
-		libclangTidyUtils \
-		libclangTooling \
-		libclangToolingCore \
-		libfindAllSymbols
-
-	# add libclang static libraries
-	CGO_LDFLAGS += $(foreach lib,$(LIBCLANG_STATIC_LIBS),$(LLVM_LIBDIR)/$(lib).a)
-
-	ifeq ($(UNAME),Linux)
-		# -Bdynamic: Link against dynamic libraries.
-		# End of libclang static libraries list.
-		CGO_LDFLAGS += -Wl,-Bdynamic
-	endif
-
-	# add LLVM dependency system library. such as libm, ncurses and zlib.
-	CGO_LDFLAGS += $(shell llvm-config --system-libs --link-static)
-
-	# add '-c++' for only Darwin.
-	# avoid 'Undefined symbols for architecture x86_64 "std::__1::__shared_count::__add_shared()"' or etc.
-	CGO_LDFLAGS += $(if $(findstring Darwin,$(UNAME)),-lc++,)
+	include ./mk/static.mk
 else
 	# dynamic link build
 	CGO_LDFLAGS += -L$(LLVM_LIBDIR)
@@ -182,8 +102,16 @@ UNUSED := \
 
 default: build
 
-build:
-	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' ./cmd/clang-server
+build: bin/clang-server bin/clang-client
+
+bin:
+	@mkdir ./bin
+
+bin/clang-server: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server ${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server
+	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' -o ./bin/clang-server ./cmd/clang-server
+
+bin/clang-client: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server ${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server
+	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' -o ./bin/clang-client ./cmd/clang-client
 
 build-race: GO_BUILD_FLAGS+=-race
 build-race: build
@@ -191,11 +119,13 @@ build-race: build
 install:
 	$(CGO_FLAGS) go install $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' ./cmd/clang-server
 
-run: build clean/cache
-	./clang-server -path /Users/zchee/src/github.com/ccache/ccache
+run: build
+	# ./bin/clang-server -path /Users/zchee/src/github.com/neovim/neovim
+	./bin/clang-server -path /Users/zchee/src/github.com/ccache/ccache
 
 run-race: GO_BUILD_FLAGS+=-race
 run-race: run
+
 
 test:
 	go test $(GO_TEST_FLAGS) $(GO_PACKAGES)
@@ -206,12 +136,21 @@ lint:
 vet:
 	go vet -v -race $(GO_PACKAGES)
 
-vendor/install:
-	$(CGO_FLAGS) go install -v -x -tags '$(GO_BUILD_TAGS)' $(shell go list ./vendor/...)
-	$(CGO_FLAGS) go install -v -x -race -tags '$(GO_BUILD_TAGS)'  $(shell go list ./vendor/...)
+
+vendor/install: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server ${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server
+
+${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server:
+	$(CGO_FLAGS) go install -v -x -tags '$(GO_BUILD_TAGS)' $(GO_VENDOR_PACKAGES)
+
+${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server:
+	$(CGO_FLAGS) go install -v -x -race -tags '$(GO_BUILD_TAGS)' $(GO_VENDOR_PACKAGES)
 
 vendor/update:
 	dep ensure -update -v
+
+vendor/distclean:
+	${RM} -r ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server
+	${RM} -r ${GOPATH}/pkg/darwin_amd64-race/github.com/zchee/clang-server
 
 vendor/clean:
 	@rm -rf $(UNUSED)
@@ -219,10 +158,15 @@ vendor/clean:
 	@find vendor \( -name 'testdata' -o -name 'cmd' -o -name 'examples' -o -name 'testutil' -o -name 'manualtest' \) -print | xargs rm -rf || true
 	@find vendor \( -name 'Makefile' -o -name 'Dockerfile' -o -name 'CHANGELOG*' -o -name '.travis.yml' -o -name 'circle.yml' -o -name '.appveyor.yml' -o -name 'appveyor.yml' -o -name '*.json' -o -name '*.proto' -o -name '*.sh' -o -name '*.pl' -o -name 'codereview.cfg' -o -name '.github' -o -name '.gitignore' -o -name '.gitattributes' \) -print | xargs rm -rf || true
 
+
 fbs:
 	@${RM} -r ./symbol/internal/symbol
 	flatc --go --grpc $(shell find ./symbol -type f -name '*.fbs')
 	@gofmt -w ./symbol/internal/symbol
+
+clang-format:
+	clang-format -i -sort-includes $(shell find testdata -type f -name '*.c' -or -name '*.cpp')
+
 
 prof/cpu:
 	go tool pprof -top -cum clang-server cpu.pprof
@@ -236,11 +180,9 @@ prof/block:
 prof/trace:
 	go tool pprof -top -cum clang-server trace.pprof
 
-clang-format:
-	clang-format -i -sort-includes $(shell find testdata -type f -name '*.c' -or -name '*.cpp')
 
 clean:
-	${RM} clang-server *.pprof
+	${RM} -r ./bin *.pprof
 
 clean/cachedir:
 	${RM} -r $(XDG_CACHE_HOME)/clang-server
