@@ -214,7 +214,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 	}
 	defer tu.Dispose()
 
-	tuch := make(chan []byte)
+	tuch := make(chan []byte, 1)
 	go func() {
 		tuch <- serializeTranslationUnit(arg.filename, tu)
 	}()
