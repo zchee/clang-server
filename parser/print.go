@@ -22,10 +22,10 @@ func printDiagnostics(diags []clang.Diagnostic) {
 }
 
 // printFile prints a symbol.File data information.
-func printFile(file *symbol.File) {
-	log.Printf("out.Name(): %+v\n", file.Name())
+func printFile(out *symbol.File) {
+	log.Printf("out.Name(): %+v\n", out.Name())
 
-	for i, sym := range file.Symbols() {
+	for i, sym := range out.Symbols() {
 		log.Printf("sym.ID: %+v\n", sym.ID())
 		def := sym.Def()
 		log.Printf("sym.Def(): FileName: %s, Line: %d, Col: %d, Offset: %d, USR: %s\n", def.FileName(), def.Line(), def.Col(), def.Offset(), def.USR())
