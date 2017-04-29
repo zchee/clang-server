@@ -64,7 +64,7 @@ func (f *File) Name() string {
 
 // TranslationUnit return the libclang translation unit data.
 func (f *File) TranslationUnit() []byte {
-	if len(f.translationUnit) == 0 {
+	if len(f.translationUnit) > 0 {
 		return f.translationUnit
 	}
 	return f.file.TranslationUnit()
@@ -72,7 +72,7 @@ func (f *File) TranslationUnit() []byte {
 
 // Symbols return the C/C++ files symbols.
 func (f *File) Symbols() []*Info {
-	if len(f.symbols) == 0 {
+	if len(f.symbols) > 0 {
 		symbols := make([]*Info, len(f.symbols))
 		for _, v := range f.symbols {
 			symbols = append(symbols, v)
@@ -95,21 +95,21 @@ func (f *File) Symbols() []*Info {
 
 // Header return the C/C++ files included header files.
 func (f *File) Headers() []*Header {
-	if len(f.headers) == 0 {
+	if len(f.headers) > 0 {
 		return f.headers
 	}
 
 	n := f.file.HeadersLength()
-	hedears := make([]*Header, n)
+	headers := make([]*Header, n)
 
 	for i := 0; i < n; i++ {
 		obj := new(symbol.Header)
 		if f.file.Headers(obj, i) {
-			hedears[i] = &Header{header: obj}
+			headers[i] = &Header{header: obj}
 		}
 	}
 
-	return hedears
+	return headers
 }
 
 // AddTranslationUnit add TranslationUnit data to File.
