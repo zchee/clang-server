@@ -212,7 +212,7 @@ func (f *File) Serialize() *flatbuffers.Builder {
 	fname := f.builder.CreateString(f.Name())
 	tu := f.builder.CreateByteString(f.TranslationUnit())
 
-	symbols := f.Symbols()
+	symbols := f.symbols
 	symbolNum := len(symbols)
 	symbolOffsets := make([]flatbuffers.UOffsetT, 0, symbolNum)
 	for _, info := range symbols {
@@ -224,7 +224,7 @@ func (f *File) Serialize() *flatbuffers.Builder {
 	}
 	symbolVecOffset := f.builder.EndVector(symbolNum)
 
-	hdrs := f.Headers()
+	hdrs := f.headers
 	hdrNum := len(hdrs)
 	hdrOffsets := make([]flatbuffers.UOffsetT, 0, hdrNum)
 	for _, hdr := range hdrs {
