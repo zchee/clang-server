@@ -203,7 +203,8 @@ func (p *Parser) ParseFile(arg parseArg) error {
 			return err
 		}
 
-		tu, err = deserializeTranslationUnit(p.idx, buf)
+		data := symbol.GetRootAsFile(buf, 0)
+		tu, err = deserializeTranslationUnit(p.idx, data.TranslationUnit())
 		if err != nil {
 			return err
 		}
