@@ -64,7 +64,7 @@ func (f *File) Name() string {
 
 // TranslationUnit return the libclang translation unit data.
 func (f *File) TranslationUnit() []byte {
-	if f.translationUnit != nil {
+	if len(f.translationUnit) == 0 {
 		return f.translationUnit
 	}
 	return f.file.TranslationUnit()
