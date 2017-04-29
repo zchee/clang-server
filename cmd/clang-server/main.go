@@ -12,7 +12,10 @@ import (
 	"github.com/zchee/clang-server/parser"
 )
 
-var path = flag.String("path", "", "parse project root directory.")
+var (
+	root = flag.String("root", "", "parse project root directory.")
+	path = flag.String("path", "", "parse project's compilation_database.json directory.")
+)
 
 func main() {
 	flag.Parse()
@@ -24,6 +27,9 @@ func main() {
 	fmt.Printf("clang version: %s\n", parser.ClangVersion())
 
 	config := parser.Config{}
+	if *root != "" {
+		config.Root = *root
+	}
 	p := parser.NewParser(*path, config)
 	p.Parse()
 }
