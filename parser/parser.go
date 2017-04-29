@@ -6,7 +6,6 @@ package parser
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -205,7 +204,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 		}
 		defer tu.Dispose()
 
-		log.Printf("tu.Spelling(): %T => %+v\n", tu.Spelling(), tu.Spelling()) // for debug
+		log.Debugf("tu.Spelling(): %T => %+v\n", tu.Spelling(), tu.Spelling()) // for debug
 
 		return nil
 	}
@@ -226,7 +225,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 	file := symbol.NewFile(arg.filename)
 	visitNode := func(cursor, parent clang.Cursor) clang.ChildVisitResult {
 		if cursor.IsNull() {
-			log.Printf("cursor: <none>")
+			log.Debug("cursor: <none>")
 			return clang.ChildVisit_Continue
 		}
 
@@ -282,7 +281,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 	printFile(out) // for debug
 
 	log.Debugf("Goroutine:%d", runtime.NumGoroutine())
-	fmt.Printf("\n================== DONE: filename: %+v ==================\n\n\n", arg.filename)
+	log.Debugf("\n================== DONE: filename: %+v ==================\n\n\n", arg.filename)
 
 	return p.db.Put(arg.filename, buf.FinishedBytes())
 }
