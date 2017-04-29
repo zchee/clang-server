@@ -107,17 +107,18 @@ build: bin/clang-server bin/clang-client
 bin:
 	@mkdir ./bin
 
-bin/clang-server: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server ${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server
+bin/clang-server: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server
 	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' -o ./bin/clang-server ./cmd/clang-server
 
-bin/clang-client: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server ${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server
+bin/clang-client: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server
 	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' -o ./bin/clang-client ./cmd/clang-client
 
 build-race: GO_BUILD_FLAGS+=-race
+build-race: ${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server
 build-race: build
 
 install:
-	$(CGO_FLAGS) go install $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' ./cmd/clang-server
+	$(CGO_FLAGS) go install $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' ./cmd/clang-server ./cmd/clang-client
 
 run: build
 	# ./bin/clang-server -path /Users/zchee/src/github.com/neovim/neovim
@@ -169,16 +170,16 @@ clang-format:
 
 
 prof/cpu:
-	go tool pprof -top -cum clang-server cpu.pprof
+	@go tool pprof -top -cum clang-server cpu.pprof
 
 prof/mem:
-	go tool pprof -top -cum clang-server mem.pprof
+	@go tool pprof -top -cum clang-server mem.pprof
 
 prof/block:
-	go tool pprof -top -cum clang-server block.pprof
+	@go tool pprof -top -cum clang-server block.pprof
 
 prof/trace:
-	go tool pprof -top -cum clang-server trace.pprof
+	@go tool pprof -top -cum clang-server trace.pprof
 
 
 clean:
