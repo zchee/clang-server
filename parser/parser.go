@@ -55,6 +55,7 @@ type Parser struct {
 
 // Config represents a parser config.
 type Config struct {
+	Root        string
 	JSONName    string
 	PathRange   []string
 	ClangOption uint32
@@ -64,9 +65,13 @@ type Config struct {
 
 // NewParser return the new Parser.
 func NewParser(path string, config Config) *Parser {
-	root, err := pathutil.FindProjectRoot(path)
-	if err != nil {
-		log.Fatal(err)
+	root := config.Root
+	if root == "" {
+		proot, err := pathutil.FindProjectRoot(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		root = proot
 	}
 
 	cd := compilationdatabase.NewCompilationDatabase(root)
