@@ -56,16 +56,30 @@ func GetRootAsFile(buf []byte, offset flatbuffers.UOffsetT) *File {
 
 // Name return the filename.
 func (f *File) Name() string {
+	if f.name != "" {
+		return f.name
+	}
 	return string(f.file.Name())
 }
 
 // TranslationUnit return the libclang translation unit data.
 func (f *File) TranslationUnit() []byte {
+	if f.translationUnit != nil {
+		return f.translationUnit
+	}
 	return f.file.TranslationUnit()
 }
 
 // Symbols return the C/C++ files symbols.
 func (f *File) Symbols() []*Info {
+	if len(f.symbols) == 0 {
+		symbols := make([]*Info, len(f.symbols))
+		for _, v := range f.symbols {
+			symbols = append(symbols, v)
+		}
+		return symbols
+	}
+
 	n := f.file.SymbolsLength()
 	symbols := make([]*Info, n)
 
@@ -81,6 +95,10 @@ func (f *File) Symbols() []*Info {
 
 // Header return the C/C++ files included header files.
 func (f *File) Header() []*Header {
+	if len(f.headers) == 0 {
+		return f.headers
+	}
+
 	n := f.file.HeadersLength()
 	hedears := make([]*Header, n)
 
@@ -187,12 +205,17 @@ func (f *File) Unmarshal() {
 
 // Serialize serializes the File.
 func (f *File) Serialize() *flatbuffers.Builder {
-	fname := f.builder.CreateString(f.name)
-	tu := f.builder.CreateByteString(f.translationUnit)
+	if f.builder == nil {
+		f.builder = flatbuffers.NewBuilder(0)
+	}
 
-	hdrNum := len(f.headers)
+	fname := f.builder.CreateString(f.Name())
+	tu := f.builder.CreateByteString(f.TranslationUnit())
+
+	hdrs := f.Header()
+	hdrNum := len(hdrs)
 	hdrOffsets := make([]flatbuffers.UOffsetT, 0, hdrNum)
-	for _, hdr := range f.headers {
+	for _, hdr := range hdrs {
 		hdrOffsets = append(hdrOffsets, hdr.serialize(f.builder))
 	}
 	symbol.FileStartHeadersVector(f.builder, hdrNum)
@@ -201,9 +224,10 @@ func (f *File) Serialize() *flatbuffers.Builder {
 	}
 	headerVecOffset := f.builder.EndVector(hdrNum)
 
-	symbolNum := len(f.symbols)
+	symbols := f.Symbols()
+	symbolNum := len(symbols)
 	symbolOffsets := make([]flatbuffers.UOffsetT, 0, symbolNum)
-	for _, info := range f.symbols {
+	for _, info := range symbols {
 		symbolOffsets = append(symbolOffsets, info.serialize(f.builder))
 	}
 	symbol.FileStartSymbolsVector(f.builder, symbolNum)
