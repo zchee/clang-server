@@ -164,6 +164,27 @@ func (f *File) AddCaller(sym, def Location, funcCall bool) {
 	f.symbols[id] = syms
 }
 
+// Unmarshal parses the flatbuffers representation in f.
+func (f *File) Unmarshal() {
+	f.name = string(f.file.Name())
+	f.translationUnit = f.file.TranslationUnit()
+	f.symbols = make(map[ID]*Info)
+	for _, s := range f.Symbols() {
+		f.symbols[s.ID()] = &Info{
+			id:      s.ID(),
+			decls:   s.Decls(),
+			def:     s.Def(),
+			callers: s.Callers(),
+			info:    s.info,
+		}
+	}
+	headers := f.Header()
+	f.headers = make([]*Header, len(headers))
+	for _, hdr := range headers {
+		f.headers = append(f.headers, hdr)
+	}
+}
+
 // Serialize serializes the File.
 func (f *File) Serialize() *flatbuffers.Builder {
 	fname := f.builder.CreateString(f.name)
