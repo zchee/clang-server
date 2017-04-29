@@ -52,7 +52,6 @@ var rootMarks = []string{
 	"LICENSE",                   // project license
 	".gitignore",                // git
 	".travis.yml", "circle.yml", // CI service config files
-	"CMakeLists.txt",                                                   // CMake
 	"autogen.sh", "configure", "Makefile.am", "Makefile.in", "INSTALL", // GNU Autotools
 	".hg", ".svn", ".bzr", "_darcs", ".tup", // typical vcs directories
 }
