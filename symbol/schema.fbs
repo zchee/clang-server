@@ -70,8 +70,7 @@ table Location {
 }
 
 rpc_service Clang {
-  Store(Info):Location (streaming: "bidi");
-  Retrieve(Location):Info (streaming: "bidi");
+  Completion(Location):File (streaming: "bidi");
 }
 
 // ----------------------------------------------------------------------------
