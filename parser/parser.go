@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -20,6 +19,7 @@ import (
 	"github.com/pkgutil/stringsutil"
 	"github.com/zchee/clang-server/compilationdatabase"
 	"github.com/zchee/clang-server/indexdb"
+	"github.com/zchee/clang-server/internal/log"
 	"github.com/zchee/clang-server/internal/pathutil"
 	"github.com/zchee/clang-server/parser/builtinheader"
 	"github.com/zchee/clang-server/symbol"
@@ -281,7 +281,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 	out := symbol.GetRootAsFile(buf.FinishedBytes(), 0)
 	printFile(out) // for debug
 
-	log.Printf("Goroutine:%d", runtime.NumGoroutine())
+	log.Debugf("Goroutine:%d", runtime.NumGoroutine())
 	fmt.Printf("\n================== DONE: filename: %+v ==================\n\n\n", arg.filename)
 
 	return p.db.Put(arg.filename, buf.FinishedBytes())

@@ -7,7 +7,6 @@ package compilationdatabase
 import (
 	"bufio"
 	"bytes"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 	"github.com/go-clang/v3.9/clang"
 	"github.com/pkg/errors"
 	"github.com/pkgutil/osutil"
+	"github.com/zchee/clang-server/internal/log"
 )
 
 // DefaultJSONName default of compile_commands.json filename.
@@ -200,7 +200,7 @@ func (c *CompilationDatabase) findJSONFile(filename string, pathRange []string) 
 	for _, d := range pathRange {
 		go func(d string) {
 			if osutil.IsExist(filepath.Join(d, filename)) {
-				log.Printf("found filepath: %s", filepath.Join(d, filename))
+				log.Debugf("found filepath: %s", filepath.Join(d, filename))
 				pathCh <- d
 			}
 		}(d)

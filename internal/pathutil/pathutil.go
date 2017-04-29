@@ -7,12 +7,12 @@ package pathutil
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/pkgutil/osutil"
 	"github.com/zchee/clang-server/internal/hashutil"
+	"github.com/zchee/clang-server/internal/log"
 	xdgbasedir "github.com/zchee/go-xdgbasedir"
 )
 

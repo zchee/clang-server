@@ -5,11 +5,11 @@
 package symbol
 
 import (
-	"log"
 	"net"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/zchee/clang-server/indexdb"
+	"github.com/zchee/clang-server/internal/log"
 	"github.com/zchee/clang-server/internal/pathutil"
 	"github.com/zchee/clang-server/symbol/internal/symbol"
 	"golang.org/x/net/context"
