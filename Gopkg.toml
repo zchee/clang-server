@@ -1,6 +1,10 @@
 
 [[dependencies]]
   branch = "master"
+  name = "github.com/davecgh/go-spew"
+
+[[dependencies]]
+  branch = "master"
   name = "github.com/go-clang/v3.9"
 
 [[dependencies]]

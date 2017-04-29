@@ -1,4 +1,10 @@
-memo = "5cdea662115c9d57e55e9faef51207a12b4416a8ce590de257f00fa5e5c94124"
+memo = "638e0189bff909fb1b73be24ff5e58e212c73313b8ceb9c4a8d51be59eab59bf"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
 
 [[projects]]
   branch = "master"
