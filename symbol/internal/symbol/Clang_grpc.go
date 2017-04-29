@@ -12,7 +12,7 @@ import (
 
 // ClangClient API for Clang service
 type ClangClient interface {
-	Completion(ctx context.Context, opts ...grpc.CallOption) (Clang_CompletionClient, error)
+	Completion(ctx context.Context, in *flatbuffers.Builder, opts ...grpc.CallOption) (*File, error)
 }
 
 type clangClient struct {
@@ -23,82 +23,50 @@ func NewClangClient(cc *grpc.ClientConn) ClangClient {
 	return &clangClient{cc}
 }
 
-func (c *clangClient) Completion(ctx context.Context, opts ...grpc.CallOption) (Clang_CompletionClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Clang_serviceDesc.Streams[0], c.cc, "/symbol.Clang/Completion", opts...)
+func (c *clangClient) Completion(ctx context.Context, in *flatbuffers.Builder, opts ...grpc.CallOption) (*File, error) {
+	out := new(File)
+	err := grpc.Invoke(ctx, "/symbol.Clang/Completion", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &clangCompletionClient{stream}
-	return x, nil
-}
-
-type Clang_CompletionClient interface {
-	Send(*flatbuffers.Builder) error
-	Recv() (*File, error)
-	grpc.ClientStream
-}
-
-type clangCompletionClient struct {
-	grpc.ClientStream
-}
-
-func (x *clangCompletionClient) Send(m *flatbuffers.Builder) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *clangCompletionClient) Recv() (*File, error) {
-	m := new(File)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return out, nil
 }
 
 // ClangServer API for Clang service
 type ClangServer interface {
-	Completion(Clang_CompletionServer) error
+	Completion(context.Context, *Location) (*flatbuffers.Builder, error)
 }
 
 func RegisterClangServer(s *grpc.Server, srv ClangServer) {
 	s.RegisterService(&_Clang_serviceDesc, srv)
 }
 
-func _Clang_Completion_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ClangServer).Completion(&clangCompletionServer{stream})
-}
-
-type Clang_CompletionServer interface {
-	Send(*flatbuffers.Builder) error
-	Recv() (*Location, error)
-	grpc.ServerStream
-}
-
-type clangCompletionServer struct {
-	grpc.ServerStream
-}
-
-func (x *clangCompletionServer) Send(m *flatbuffers.Builder) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *clangCompletionServer) Recv() (*Location, error) {
-	m := new(Location)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _Clang_Completion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Location)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	if interceptor == nil {
+		return srv.(ClangServer).Completion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/symbol.Clang/Completion",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClangServer).Completion(ctx, req.(*Location))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 var _Clang_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "symbol.Clang",
 	HandlerType: (*ClangServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
+	Methods: []grpc.MethodDesc{
 		{
-			StreamName:    "Completion",
-			Handler:       _Clang_Completion_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
+			MethodName: "Completion",
+			Handler:    _Clang_Completion_Handler,
 		},
 	},
+	Streams: []grpc.StreamDesc{},
 }

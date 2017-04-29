@@ -70,7 +70,7 @@ table Location {
 }
 
 rpc_service Clang {
-  Completion(Location):File (streaming: "bidi");
+  Completion(Location):File (streaming: "none");
 }
 
 // ----------------------------------------------------------------------------
