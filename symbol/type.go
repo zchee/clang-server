@@ -460,3 +460,23 @@ func (l *Location) serialize(builder *flatbuffers.Builder) flatbuffers.UOffsetT 
 func (l *Location) isExist() bool {
 	return !reflect.DeepEqual(l, Location{})
 }
+
+// CreateLocation creates location data using flatbuffers binary.
+func CreateLocation(filename string, line, col uint32) *flatbuffers.Builder {
+	l := Location{
+		fileName: filename,
+		line:     line,
+		col:      col,
+	}
+	builder := flatbuffers.NewBuilder(0)
+
+	fname := builder.CreateString(l.fileName)
+
+	symbol.LocationStart(builder)
+	symbol.LocationAddFileName(builder, fname)
+	symbol.LocationAddLine(builder, l.line)
+	symbol.LocationAddCol(builder, l.col)
+	builder.Finish(symbol.LocationEnd(builder))
+
+	return builder
+}
