@@ -16,6 +16,10 @@ func RawEncode(dst, src, alpha []byte) int {
 		panic("invalid alphabet")
 	}
 
+	if len(dst) < len(src)*2 {
+		panic("dst buffer is too small")
+	}
+
 	if len(src) == 0 {
 		return 0
 	}
@@ -31,6 +35,10 @@ func RawEncode(dst, src, alpha []byte) int {
 func Decode(dst, src []byte) (int, error) {
 	if len(src)%2 != 0 {
 		return 0, ErrLength
+	}
+
+	if len(dst) < len(src)/2 {
+		panic("dst buffer is too small")
 	}
 
 	if len(src) == 0 {

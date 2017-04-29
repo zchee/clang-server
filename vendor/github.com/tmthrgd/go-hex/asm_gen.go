@@ -123,7 +123,7 @@ func (e *encode) BigLoop(l asm.Label, vpand, vpunpckhbw, vpshufb func(ops ...asm
 	e.Convert(asm.X2, asm.X1, asm.X0, asm.X3, vpand, vpunpckhbw, vpshufb)
 
 	for i, r := range []asm.Operand{asm.X2, asm.X1} {
-		e.Movou(asm.Address(e.di, e.cx, asm.SX2, -16*(i + 1)), r)
+		e.Movou(asm.Address(e.di, e.cx, asm.SX2, -16*(i+1)), r)
 	}
 
 	e.Subq(e.cx, asm.Constant(16))
@@ -268,9 +268,9 @@ type decode struct {
 
 	ret, invalid asm.Label
 
-	base, toLower, high, valid, sign asm.Data
+	base, toLower, high, low, valid, sign asm.Data
 
-	low, valid0, valid2 asm.Operand
+	valid0, valid2 asm.Operand
 }
 
 func (d *decode) vpxor_sse(ops ...asm.Operand) {
@@ -413,9 +413,9 @@ func decodeASM(a *asm.Asm) {
 
 		ret, invalid,
 
-		base, toLower, high, valid, sign,
+		base, toLower, high, low, valid, sign,
 
-		asm.X13, asm.X14, asm.X15,
+		asm.X14, asm.X15,
 	}
 
 	a.Movq(d.di, dst)
@@ -424,7 +424,6 @@ func decodeASM(a *asm.Asm) {
 
 	a.Movq(asm.R15, d.si)
 
-	a.Movou(d.low, low)
 	a.Movou(d.valid0, d.valid.Offset(0))
 	a.Movou(d.valid2, d.valid.Offset(32))
 

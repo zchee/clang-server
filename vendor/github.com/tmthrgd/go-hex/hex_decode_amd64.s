@@ -51,7 +51,6 @@ TEXT ·decodeASM(SB),NOSPLIT,$0
 	MOVQ src+8(FP), SI
 	MOVQ len+16(FP), BX
 	MOVQ SI, R15
-	MOVOU decodeLow<>(SB), X13
 	MOVOU decodeValid<>(SB), X14
 	MOVOU decodeValid<>+0x20(SB), X15
 	MOVW $65535, DX
@@ -79,8 +78,7 @@ bigloop_avx:
 	PSUBB decodeBase<>(SB), X0
 	PANDN decodeBase<>+0x10(SB), X4
 	PSUBB X4, X0
-	// VPSHUFB X13, X0, X3
-	BYTE $0xc4; BYTE $0xc2; BYTE $0x79; BYTE $0x00; BYTE $0xdd
+	VPSHUFB decodeLow<>(SB), X0, X3
 	PSHUFB decodeHigh<>(SB), X0
 	PSLLW $4, X0
 	POR X3, X0
@@ -141,7 +139,7 @@ tail_conv:
 	PANDN decodeBase<>+0x10(SB), X4
 	PSUBB X4, X0
 	MOVOU X0, X3
-	PSHUFB X13, X3
+	PSHUFB decodeLow<>(SB), X3
 	PSHUFB decodeHigh<>(SB), X0
 	PSLLW $4, X0
 	POR X3, X0
@@ -202,7 +200,7 @@ bigloop_sse:
 	PANDN decodeBase<>+0x10(SB), X4
 	PSUBB X4, X0
 	MOVOU X0, X3
-	PSHUFB X13, X3
+	PSHUFB decodeLow<>(SB), X3
 	PSHUFB decodeHigh<>(SB), X0
 	PSLLW $4, X0
 	POR X3, X0

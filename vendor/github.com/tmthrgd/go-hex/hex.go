@@ -85,3 +85,15 @@ func DecodeString(s string) ([]byte, error) {
 
 	return dst, nil
 }
+
+// MustDecodeString is like DecodeString but panics if the string cannot be
+// parsed. It simplifies safe initialization of global variables holding
+// binary data.
+func MustDecodeString(str string) []byte {
+	dst, err := DecodeString(str)
+	if err != nil {
+		panic(err)
+	}
+
+	return dst
+}

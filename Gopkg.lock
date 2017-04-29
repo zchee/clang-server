@@ -10,19 +10,19 @@ memo = "5cdea662115c9d57e55e9faef51207a12b4416a8ce590de257f00fa5e5c94124"
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto","ptypes/any"]
-  revision = "c9c7427a2a70d2eb3bafa0ab2dc163e45f143317"
+  revision = "18c9bb3261723cd5401db4d0c9fbc5c3b6c70fe8"
 
 [[projects]]
   branch = "master"
   name = "github.com/golang/snappy"
   packages = ["."]
-  revision = "d9eb7a3d35ec988b8585d4a0068e462c27d28380"
+  revision = "553a641470496b2327abcac10b36396bd98e45c9"
 
 [[projects]]
   branch = "master"
   name = "github.com/google/flatbuffers"
   packages = ["go"]
-  revision = "7f2a1c90d5ac142d1f9230fc32aa455781681aee"
+  revision = "8b92122f33c2e2aa07e335341503ce19b4989abb"
 
 [[projects]]
   branch = "master"
@@ -52,19 +52,19 @@ memo = "5cdea662115c9d57e55e9faef51207a12b4416a8ce590de257f00fa5e5c94124"
   branch = "master"
   name = "github.com/syndtr/goleveldb"
   packages = ["leveldb","leveldb/cache","leveldb/comparer","leveldb/errors","leveldb/filter","leveldb/iterator","leveldb/journal","leveldb/memdb","leveldb/opt","leveldb/storage","leveldb/table","leveldb/util"]
-  revision = "6b4daa5362b502898ddf367c5c11deb9e7a5c727"
+  revision = "8c81ea47d4c41a385645e133e15510fc6a2a74b4"
 
 [[projects]]
   branch = "master"
   name = "github.com/tmthrgd/asm"
   packages = ["."]
-  revision = "da148a91f261dc0471d0c1c6aacf38c6e4d0eed0"
+  revision = "764b08e5cd9fd0ea6b851ba036de32b49bc6d711"
 
 [[projects]]
   branch = "master"
   name = "github.com/tmthrgd/go-hex"
   packages = ["."]
-  revision = "e648309466c4639fec0373f9565eeec831b58a34"
+  revision = "0d230118f0c52138131205f7c92099e3f4ea0587"
 
 [[projects]]
   branch = "master"
@@ -76,22 +76,22 @@ memo = "5cdea662115c9d57e55e9faef51207a12b4416a8ce590de257f00fa5e5c94124"
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
-  revision = "5602c733f70afc6dcec6766be0d5034d4c4f14de"
+  revision = "da118f7b8e5954f39d0d2130ab35d4bf0e3cb344"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
-  revision = "f4b4367115ec2de254587813edaa901bc1c723a8"
+  revision = "470f45bf29f4147d6fbd7dfd0a02a848e49f5bf4"
 
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
-  revision = "de9f5e90fe9b278809363f08c2072d2f2a429de7"
+  revision = "411e09b969b1170a9f0c467558eb4c4c110d9c77"
 
 [[projects]]
   branch = "master"
   name = "google.golang.org/grpc"
-  packages = [".","codes","credentials","grpclog","internal","keepalive","metadata","naming","peer","stats","status","tap","transport"]
-  revision = "72b617aacebed7836e806925e6f61eef55cb40c8"
+  packages = [".","codes","credentials","grpclb/grpc_lb_v1","grpclog","internal","keepalive","metadata","naming","peer","stats","status","tap","transport"]
+  revision = "0eb507a2ca07f13baf499f89d66cc566bf644643"
