@@ -81,8 +81,7 @@ Mkfile.old
 dkms.cof
 
 # binary
-clang-server
-!cmd/clang-server
+bin/*
 
 # clang builtin header
 parser/builtinheader/include
