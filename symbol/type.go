@@ -94,7 +94,7 @@ func (f *File) Symbols() []*Info {
 }
 
 // Header return the C/C++ files included header files.
-func (f *File) Header() []*Header {
+func (f *File) Headers() []*Header {
 	if len(f.headers) == 0 {
 		return f.headers
 	}
@@ -196,7 +196,7 @@ func (f *File) Unmarshal() {
 			info:    s.info,
 		}
 	}
-	headers := f.Header()
+	headers := f.Headers()
 	f.headers = make([]*Header, len(headers))
 	for _, hdr := range headers {
 		f.headers = append(f.headers, hdr)
@@ -212,18 +212,6 @@ func (f *File) Serialize() *flatbuffers.Builder {
 	fname := f.builder.CreateString(f.Name())
 	tu := f.builder.CreateByteString(f.TranslationUnit())
 
-	hdrs := f.Header()
-	hdrNum := len(hdrs)
-	hdrOffsets := make([]flatbuffers.UOffsetT, 0, hdrNum)
-	for _, hdr := range hdrs {
-		hdrOffsets = append(hdrOffsets, hdr.serialize(f.builder))
-	}
-	symbol.FileStartHeadersVector(f.builder, hdrNum)
-	for i := hdrNum - 1; i >= 0; i-- {
-		f.builder.PrependUOffsetT(hdrOffsets[i])
-	}
-	headerVecOffset := f.builder.EndVector(hdrNum)
-
 	symbols := f.Symbols()
 	symbolNum := len(symbols)
 	symbolOffsets := make([]flatbuffers.UOffsetT, 0, symbolNum)
@@ -235,6 +223,18 @@ func (f *File) Serialize() *flatbuffers.Builder {
 		f.builder.PrependUOffsetT(symbolOffsets[i])
 	}
 	symbolVecOffset := f.builder.EndVector(symbolNum)
+
+	hdrs := f.Headers()
+	hdrNum := len(hdrs)
+	hdrOffsets := make([]flatbuffers.UOffsetT, 0, hdrNum)
+	for _, hdr := range hdrs {
+		hdrOffsets = append(hdrOffsets, hdr.serialize(f.builder))
+	}
+	symbol.FileStartHeadersVector(f.builder, hdrNum)
+	for i := hdrNum - 1; i >= 0; i-- {
+		f.builder.PrependUOffsetT(hdrOffsets[i])
+	}
+	headerVecOffset := f.builder.EndVector(hdrNum)
 
 	symbol.FileStart(f.builder)
 	symbol.FileAddName(f.builder, fname)
