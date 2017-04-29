@@ -18,6 +18,7 @@ import (
 
 const port = ":50051"
 
+// NewClangClient retern the new symbol.ClangClient.
 func NewClangClient(cc *grpc.ClientConn) symbol.ClangClient {
 	return symbol.NewClangClient(cc)
 }
@@ -46,6 +47,7 @@ func (s *server) Completion(ctx context.Context, loc *symbol.Location) (*flatbuf
 	return file.Serialize(), nil
 }
 
+// Serve serve clang-server server with the flatbuffers gRPC custom codec.
 func Serve() {
 	println("Serve")
 	l, err := net.Listen("tcp", port)
