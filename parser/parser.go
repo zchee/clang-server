@@ -286,7 +286,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 	printFile(out) // for debug
 
 	log.Debugf("Goroutine:%d", runtime.NumGoroutine())
-	log.Debugf("\n================== DONE: filename: %+v ==================\n\n\n", arg.filename)
+	log.Debugf("================== DONE: filename: %+v ==================\n\n\n", arg.filename)
 
 	return p.db.Put(arg.filename, buf.FinishedBytes())
 }
