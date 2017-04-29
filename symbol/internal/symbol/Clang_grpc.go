@@ -12,8 +12,7 @@ import (
 
 // ClangClient API for Clang service
 type ClangClient interface {
-	Store(ctx context.Context, opts ...grpc.CallOption) (Clang_StoreClient, error)
-	Retrieve(ctx context.Context, opts ...grpc.CallOption) (Clang_RetrieveClient, error)
+	Completion(ctx context.Context, opts ...grpc.CallOption) (Clang_CompletionClient, error)
 }
 
 type clangClient struct {
@@ -24,62 +23,31 @@ func NewClangClient(cc *grpc.ClientConn) ClangClient {
 	return &clangClient{cc}
 }
 
-func (c *clangClient) Store(ctx context.Context, opts ...grpc.CallOption) (Clang_StoreClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Clang_serviceDesc.Streams[0], c.cc, "/symbol.Clang/Store", opts...)
+func (c *clangClient) Completion(ctx context.Context, opts ...grpc.CallOption) (Clang_CompletionClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Clang_serviceDesc.Streams[0], c.cc, "/symbol.Clang/Completion", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &clangStoreClient{stream}
+	x := &clangCompletionClient{stream}
 	return x, nil
 }
 
-type Clang_StoreClient interface {
+type Clang_CompletionClient interface {
 	Send(*flatbuffers.Builder) error
-	Recv() (*Location, error)
+	Recv() (*File, error)
 	grpc.ClientStream
 }
 
-type clangStoreClient struct {
+type clangCompletionClient struct {
 	grpc.ClientStream
 }
 
-func (x *clangStoreClient) Send(m *flatbuffers.Builder) error {
+func (x *clangCompletionClient) Send(m *flatbuffers.Builder) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *clangStoreClient) Recv() (*Location, error) {
-	m := new(Location)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *clangClient) Retrieve(ctx context.Context, opts ...grpc.CallOption) (Clang_RetrieveClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Clang_serviceDesc.Streams[1], c.cc, "/symbol.Clang/Retrieve", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &clangRetrieveClient{stream}
-	return x, nil
-}
-
-type Clang_RetrieveClient interface {
-	Send(*flatbuffers.Builder) error
-	Recv() (*Info, error)
-	grpc.ClientStream
-}
-
-type clangRetrieveClient struct {
-	grpc.ClientStream
-}
-
-func (x *clangRetrieveClient) Send(m *flatbuffers.Builder) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *clangRetrieveClient) Recv() (*Info, error) {
-	m := new(Info)
+func (x *clangCompletionClient) Recv() (*File, error) {
+	m := new(File)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -88,59 +56,32 @@ func (x *clangRetrieveClient) Recv() (*Info, error) {
 
 // ClangServer API for Clang service
 type ClangServer interface {
-	Store(Clang_StoreServer) error
-	Retrieve(Clang_RetrieveServer) error
+	Completion(Clang_CompletionServer) error
 }
 
 func RegisterClangServer(s *grpc.Server, srv ClangServer) {
 	s.RegisterService(&_Clang_serviceDesc, srv)
 }
 
-func _Clang_Store_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ClangServer).Store(&clangStoreServer{stream})
+func _Clang_Completion_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ClangServer).Completion(&clangCompletionServer{stream})
 }
 
-type Clang_StoreServer interface {
-	Send(*flatbuffers.Builder) error
-	Recv() (*Info, error)
-	grpc.ServerStream
-}
-
-type clangStoreServer struct {
-	grpc.ServerStream
-}
-
-func (x *clangStoreServer) Send(m *flatbuffers.Builder) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *clangStoreServer) Recv() (*Info, error) {
-	m := new(Info)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func _Clang_Retrieve_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ClangServer).Retrieve(&clangRetrieveServer{stream})
-}
-
-type Clang_RetrieveServer interface {
+type Clang_CompletionServer interface {
 	Send(*flatbuffers.Builder) error
 	Recv() (*Location, error)
 	grpc.ServerStream
 }
 
-type clangRetrieveServer struct {
+type clangCompletionServer struct {
 	grpc.ServerStream
 }
 
-func (x *clangRetrieveServer) Send(m *flatbuffers.Builder) error {
+func (x *clangCompletionServer) Send(m *flatbuffers.Builder) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *clangRetrieveServer) Recv() (*Location, error) {
+func (x *clangCompletionServer) Recv() (*Location, error) {
 	m := new(Location)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -154,14 +95,8 @@ var _Clang_serviceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Store",
-			Handler:       _Clang_Store_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-		{
-			StreamName:    "Retrieve",
-			Handler:       _Clang_Retrieve_Handler,
+			StreamName:    "Completion",
+			Handler:       _Clang_Completion_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},
