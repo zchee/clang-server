@@ -219,7 +219,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 		tuch <- serializeTranslationUnit(arg.filename, tu)
 	}()
 
-	// printDiagnostics(tu.Diagnostics())
+	printDiagnostics(tu.Diagnostics())
 
 	rootCursor := tu.TranslationUnitCursor()
 	file := symbol.NewFile(arg.filename)
