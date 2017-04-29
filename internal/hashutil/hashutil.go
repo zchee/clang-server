@@ -12,25 +12,28 @@ import (
 	hex "github.com/tmthrgd/go-hex"
 )
 
+// Size maximum digest size which same as blake2b.Size.
+const Size = blake2b.Size
+
 // NewHash converts the b to blake2b sum512 hash.
-func NewHash(b []byte) [blake2b.Size]byte {
+func NewHash(b []byte) [Size]byte {
 	return blake2b.Sum512(b)
 }
 
 // NewHashString converts the s to blake2b sum512 hash.
-func NewHashString(s string) [blake2b.Size]byte {
+func NewHashString(s string) [Size]byte {
 	return blake2b.Sum512(stringToByteSlice(s))
 }
 
 // Encode returns the hexadecimal encoded byte slice of blake2b hashed b.
-func Encode(b [blake2b.Size]byte) []byte {
+func Encode(b [Size]byte) []byte {
 	dst := make([]byte, hex.EncodedLen(len(b)))
 	hex.Encode(dst, b[:])
 	return dst
 }
 
 // EncodeToString returns the hexadecimal encoded string of blake2b hashed b.
-func EncodeToString(b [blake2b.Size]byte) string {
+func EncodeToString(b [Size]byte) string {
 	return hex.EncodeToString(b[:])
 }
 

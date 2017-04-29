@@ -7,8 +7,6 @@ package hashutil
 import (
 	"reflect"
 	"testing"
-
-	blake2b "github.com/minio/blake2b-simd"
 )
 
 func TestNewHash(t *testing.T) {
@@ -18,12 +16,12 @@ func TestNewHash(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want [blake2b.Size]byte
+		want [Size]byte
 	}{
 		{
 			name: "normal",
 			args: args{b: []byte("test")},
-			want: [blake2b.Size]byte{
+			want: [Size]byte{
 				167, 16, 121, 212, 40, 83, 222, 162, 110, 69, 48, 4, 51, 134, 112, 165,
 				56, 20, 183, 129, 55, 255, 190, 208, 118, 3, 164, 29, 118, 164, 131, 170,
 				155, 195, 59, 88, 47, 119, 211, 10, 101, 230, 242, 154, 137, 108, 4, 17,
@@ -47,12 +45,12 @@ func TestNewHashString(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want [blake2b.Size]byte
+		want [Size]byte
 	}{
 		{
 			name: "normal",
 			args: args{s: "test"},
-			want: [blake2b.Size]byte{
+			want: [Size]byte{
 				167, 16, 121, 212, 40, 83, 222, 162, 110, 69, 48, 4, 51, 134, 112, 165,
 				56, 20, 183, 129, 55, 255, 190, 208, 118, 3, 164, 29, 118, 164, 131, 170,
 				155, 195, 59, 88, 47, 119, 211, 10, 101, 230, 242, 154, 137, 108, 4, 17,
@@ -71,7 +69,7 @@ func TestNewHashString(t *testing.T) {
 
 func TestEncode(t *testing.T) {
 	type args struct {
-		b [blake2b.Size]byte
+		b [Size]byte
 	}
 	tests := []struct {
 		name string
@@ -80,7 +78,7 @@ func TestEncode(t *testing.T) {
 	}{
 		{
 			name: "normal",
-			args: args{b: [blake2b.Size]byte{
+			args: args{b: [Size]byte{
 				167, 16, 121, 212, 40, 83, 222, 162, 110, 69, 48, 4, 51, 134, 112, 165,
 				56, 20, 183, 129, 55, 255, 190, 208, 118, 3, 164, 29, 118, 164, 131, 170,
 				155, 195, 59, 88, 47, 119, 211, 10, 101, 230, 242, 154, 137, 108, 4, 17,
@@ -109,7 +107,7 @@ func TestEncode(t *testing.T) {
 
 func TestEncodeToString(t *testing.T) {
 	type args struct {
-		b [blake2b.Size]byte
+		b [Size]byte
 	}
 	tests := []struct {
 		name string
@@ -118,7 +116,7 @@ func TestEncodeToString(t *testing.T) {
 	}{
 		{
 			name: "normal",
-			args: args{b: [blake2b.Size]byte{
+			args: args{b: [Size]byte{
 				167, 16, 121, 212, 40, 83, 222, 162,
 				110, 69, 48, 4, 51, 134, 112, 165,
 				56, 20, 183, 129, 55, 255, 190, 208,
