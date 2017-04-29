@@ -128,13 +128,13 @@ run-race: run
 
 
 test:
-	go test $(GO_TEST_FLAGS) $(GO_PACKAGES)
+	@go test $(GO_TEST_FLAGS) $(GO_PACKAGES)
 
 lint:
-	golint -min_confidence 0.1 $(GO_PACKAGES)
+	@golint -set_exit_status $(GO_PACKAGES)
 
 vet:
-	go vet -v -race $(GO_PACKAGES)
+	@go vet $(GO_PACKAGES)
 
 
 vendor/install: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server ${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server
