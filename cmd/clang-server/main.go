@@ -26,7 +26,7 @@ func main() {
 
 	fmt.Printf("clang version: %s\n", parser.ClangVersion())
 
-	config := parser.Config{}
+	config := new(parser.Config)
 	if *root != "" {
 		config.Root = *root
 	}

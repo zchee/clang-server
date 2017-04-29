@@ -64,7 +64,7 @@ type Config struct {
 }
 
 // NewParser return the new Parser.
-func NewParser(path string, config Config) *Parser {
+func NewParser(path string, config *Config) *Parser {
 	root := config.Root
 	if root == "" {
 		proot, err := pathutil.FindProjectRoot(path)
