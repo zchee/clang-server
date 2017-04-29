@@ -164,7 +164,7 @@ func (p *Parser) Parse() {
 		std := ccs[0].Arguments[i][5:]
 		switch {
 		case strings.HasPrefix(std, "c"), strings.HasPrefix(std, "gnu"):
-			if std[len(std)-2] == '8' || std[len(std)-2] == '9' {
+			if std[len(std)-2] == '8' || std[len(std)-2] == '9' || std[len(std)-2] == '1' {
 				flags = append(flags, "-include", "/usr/include/stdint.h")
 			}
 		}
