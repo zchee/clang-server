@@ -94,7 +94,7 @@ func NewParser(path string, config *Config) *Parser {
 	p := &Parser{
 		root:        root,
 		clangOption: clangOption,
-		idx:         clang.NewIndex(0, 1), // disable excludeDeclarationsFromPCH, enable displayDiagnostics
+		idx:         clang.NewIndex(0, 0), // disable excludeDeclarationsFromPCH, enable displayDiagnostics
 		cd:          cd,
 		db:          db,
 		server:      symbol.NewServer(),
@@ -229,7 +229,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 		tuch <- serializeTranslationUnit(arg.filename, tu)
 	}()
 
-	printDiagnostics(tu.Diagnostics())
+	// printDiagnostics(tu.Diagnostics())
 
 	rootCursor := tu.TranslationUnitCursor()
 	file := symbol.NewFile(arg.filename, arg.flag)
