@@ -12,7 +12,7 @@ import (
 
 // ClangClient API for Clang service
 type ClangClient interface {
-	Completion(ctx context.Context, in *flatbuffers.Builder, opts ...grpc.CallOption) (*File, error)
+	Completion(ctx context.Context, in *flatbuffers.Builder, opts ...grpc.CallOption) (*CodeCompleteResults, error)
 }
 
 type clangClient struct {
@@ -23,8 +23,8 @@ func NewClangClient(cc *grpc.ClientConn) ClangClient {
 	return &clangClient{cc}
 }
 
-func (c *clangClient) Completion(ctx context.Context, in *flatbuffers.Builder, opts ...grpc.CallOption) (*File, error) {
-	out := new(File)
+func (c *clangClient) Completion(ctx context.Context, in *flatbuffers.Builder, opts ...grpc.CallOption) (*CodeCompleteResults, error) {
+	out := new(CodeCompleteResults)
 	err := grpc.Invoke(ctx, "/symbol.Clang/Completion", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err

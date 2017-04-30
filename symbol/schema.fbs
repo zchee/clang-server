@@ -72,8 +72,24 @@ table Location {
   USR: string; // -> []byte
 }
 
+/// CompleteItem represents a vim complete-items dictionary.
+table CompleteItem {
+  Word: string (required); // -> []byte
+  Abbr: string; // -> []byte
+  Menu: string; // -> []byte
+  Info: string; // -> []byte
+  Kind: string; // -> []byte
+  Icase: bool; // -> byte
+  Dup: bool; // -> byte
+}
+
+/// CodeCompleteResults represents a list of vim complete-items dictionary.
+table CodeCompleteResults {
+  Results: [CompleteItem];
+}
+
 rpc_service Clang {
-  Completion(Location):File (streaming: "none");
+  Completion(Location):CodeCompleteResults (streaming: "none");
 }
 
 // ----------------------------------------------------------------------------
