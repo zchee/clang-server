@@ -43,9 +43,10 @@ type Parser struct {
 	root        string
 	clangOption uint32
 
-	idx clang.Index
-	cd  *compilationdatabase.CompilationDatabase
-	db  *indexdb.IndexDB
+	idx    clang.Index
+	cd     *compilationdatabase.CompilationDatabase
+	db     *indexdb.IndexDB
+	server *symbol.Server
 
 	dispatcher *dispatcher
 
@@ -95,6 +96,7 @@ func NewParser(path string, config *Config) *Parser {
 		idx:         clang.NewIndex(0, 1), // disable excludeDeclarationsFromPCH, enable displayDiagnostics
 		cd:          cd,
 		db:          db,
+		server:      symbol.NewServer(),
 	}
 
 	if config.Debug {
@@ -148,7 +150,7 @@ func CreateBulitinHeaders() error {
 func (p *Parser) Parse() {
 	defer func() {
 		p.db.Close()
-		symbol.Serve()
+		p.server.Serve()
 	}()
 
 	ccs := p.cd.CompileCommands()

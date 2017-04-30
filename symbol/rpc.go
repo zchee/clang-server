@@ -39,6 +39,21 @@ func NewServer() *Server {
 	}
 }
 
+// Serve serve clang-server server with the flatbuffers gRPC custom codec.
+func (s *Server) Serve() {
+	println("Serve")
+	l, err := net.Listen("tcp", port)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	gprcServer := grpc.NewServer(grpc.CustomCodec(flatbuffers.FlatbuffersCodec{}))
+	symbol.RegisterClangServer(gprcServer, s)
+	if err := gprcServer.Serve(l); err != nil {
+		log.Fatal(err)
+	}
+}
+
 // Completion implements symbol.ClangServer Completion interface.
 func (s *Server) Completion(ctx context.Context, loc *symbol.Location) (*flatbuffers.Builder, error) {
 	f := string(loc.FileName())
@@ -70,20 +85,4 @@ func (s *Server) Completion(ctx context.Context, loc *symbol.Location) (*flatbuf
 	result := codeCompleteResults.Marshal(s.tu.CodeCompleteAt(f, loc.Line(), loc.Col(), nil, clang.DefaultCodeCompleteOptions()))
 
 	return result, nil
-}
-
-// Serve serve clang-server server with the flatbuffers gRPC custom codec.
-func Serve() {
-	println("Serve")
-	l, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	s := grpc.NewServer(grpc.CustomCodec(flatbuffers.FlatbuffersCodec{}))
-	server := NewServer()
-	symbol.RegisterClangServer(s, server)
-	if err := s.Serve(l); err != nil {
-		log.Fatal(err)
-	}
 }
