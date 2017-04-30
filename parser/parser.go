@@ -215,7 +215,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 		}
 		defer tu.Dispose()
 
-		log.Debugf("tu.Spelling(): %T => %+v\n", tu.Spelling(), tu.Spelling()) // for debug
+		log.Debugf("tu.Spelling(): %T => %+v\n", tu.Spelling(), tu.Spelling())
 
 		return nil
 	}
