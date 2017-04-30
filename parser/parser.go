@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/go-clang/v3.9/clang"
 	"github.com/pkg/errors"
@@ -152,6 +153,7 @@ func (p *Parser) Parse() {
 		p.db.Close()
 		p.server.Serve()
 	}()
+	defer profile(time.Now(), "Parse")
 
 	ccs := p.cd.CompileCommands()
 	if len(ccs) == 0 {
