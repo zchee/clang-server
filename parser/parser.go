@@ -228,7 +228,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 	printDiagnostics(tu.Diagnostics())
 
 	rootCursor := tu.TranslationUnitCursor()
-	file := symbol.NewFile(arg.filename)
+	file := symbol.NewFile(arg.filename, arg.flag)
 	visitNode := func(cursor, parent clang.Cursor) clang.ChildVisitResult {
 		if cursor.IsNull() {
 			log.Debug("cursor: <none>")

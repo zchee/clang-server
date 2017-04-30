@@ -27,6 +27,7 @@ import (
 // }
 type File struct {
 	name            string
+	flags           []string
 	translationUnit []byte
 	locations       map[Location]ID
 	symbols         map[ID]*Info
@@ -38,9 +39,10 @@ type File struct {
 }
 
 // NewFile return the new File.
-func NewFile(name string) *File {
+func NewFile(name string, flags []string) *File {
 	return &File{
 		name:      name,
+		flags:     flags,
 		locations: make(map[Location]ID),
 		symbols:   make(map[ID]*Info),
 		builder:   flatbuffers.NewBuilder(0),
@@ -212,6 +214,17 @@ func (f *File) Serialize() *flatbuffers.Builder {
 	fname := f.builder.CreateString(f.Name())
 	tu := f.builder.CreateByteString(f.TranslationUnit())
 
+	flagNum := len(f.flags)
+	flagOffsets := make([]flatbuffers.UOffsetT, 0, flagNum)
+	for _, flag := range f.flags {
+		flagOffsets = append(flagOffsets, f.builder.CreateString(flag))
+	}
+	symbol.FileStartFlagsVector(f.builder, flagNum)
+	for i := flagNum - 1; i >= 0; i-- {
+		f.builder.PrependUOffsetT(flagOffsets[i])
+	}
+	flagVecOffset := f.builder.EndVector(flagNum)
+
 	symbols := f.symbols
 	symbolNum := len(symbols)
 	symbolOffsets := make([]flatbuffers.UOffsetT, 0, symbolNum)
@@ -238,6 +251,7 @@ func (f *File) Serialize() *flatbuffers.Builder {
 
 	symbol.FileStart(f.builder)
 	symbol.FileAddName(f.builder, fname)
+	symbol.FileAddFlags(f.builder, flagVecOffset)
 	symbol.FileAddTranslationUnit(f.builder, tu)
 	symbol.FileAddSymbols(f.builder, symbolVecOffset)
 	symbol.FileAddHeaders(f.builder, headerVecOffset)

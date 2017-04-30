@@ -11,6 +11,9 @@ table File {
   /// Name name of file.
   Name: string (required, key); // -> []byte
 
+  /// Flags compiled flags of file.
+  Flags: [string]; // -> [][]byte
+
   /// TranslationUnit libclang translation unit data of file.
   TranslationUnit: string; // -> []byte
 

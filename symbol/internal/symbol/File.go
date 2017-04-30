@@ -37,9 +37,28 @@ func (rcv *File) Name() []byte {
 }
 
 /// Name name of file.
+/// Flags compiled flags of file.
+func (rcv *File) Flags(j int) []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
+	}
+	return nil
+}
+
+func (rcv *File) FlagsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+/// Flags compiled flags of file.
 /// TranslationUnit libclang translation unit data of file.
 func (rcv *File) TranslationUnit() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
@@ -49,7 +68,7 @@ func (rcv *File) TranslationUnit() []byte {
 /// TranslationUnit libclang translation unit data of file.
 /// Symbols symbol database of file.
 func (rcv *File) Symbols(obj *Info, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
 		x += flatbuffers.UOffsetT(j) * 4
@@ -61,7 +80,7 @@ func (rcv *File) Symbols(obj *Info, j int) bool {
 }
 
 func (rcv *File) SymbolsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -71,7 +90,7 @@ func (rcv *File) SymbolsLength() int {
 /// Symbols symbol database of file.
 /// Headers headers of file.
 func (rcv *File) Headers(obj *Header, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
 		x += flatbuffers.UOffsetT(j) * 4
@@ -83,7 +102,7 @@ func (rcv *File) Headers(obj *Header, j int) bool {
 }
 
 func (rcv *File) HeadersLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -92,7 +111,7 @@ func (rcv *File) HeadersLength() int {
 
 /// Headers headers of file.
 func (rcv *File) Includes(j int) []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
@@ -101,7 +120,7 @@ func (rcv *File) Includes(j int) []byte {
 }
 
 func (rcv *File) IncludesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -109,28 +128,34 @@ func (rcv *File) IncludesLength() int {
 }
 
 func FileStart(builder *flatbuffers.Builder) {
-	builder.StartObject(5)
+	builder.StartObject(6)
 }
 func FileAddName(builder *flatbuffers.Builder, Name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(Name), 0)
 }
+func FileAddFlags(builder *flatbuffers.Builder, Flags flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(Flags), 0)
+}
+func FileStartFlagsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
 func FileAddTranslationUnit(builder *flatbuffers.Builder, TranslationUnit flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(TranslationUnit), 0)
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(TranslationUnit), 0)
 }
 func FileAddSymbols(builder *flatbuffers.Builder, Symbols flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(Symbols), 0)
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(Symbols), 0)
 }
 func FileStartSymbolsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func FileAddHeaders(builder *flatbuffers.Builder, Headers flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(Headers), 0)
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(Headers), 0)
 }
 func FileStartHeadersVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func FileAddIncludes(builder *flatbuffers.Builder, Includes flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(Includes), 0)
+	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(Includes), 0)
 }
 func FileStartIncludesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
