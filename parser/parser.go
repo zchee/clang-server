@@ -326,6 +326,8 @@ func (p *Parser) DeserializeTranslationUnit(idx clang.Index, buf []byte) (clang.
 	if err != nil {
 		return tu, err
 	}
+	defer tmpfile.Close()
+
 	binary.Write(tmpfile, binary.LittleEndian, buf)
 
 	if err := idx.TranslationUnit2(tmpfile.Name(), &tu); clang.ErrorCode(err) != clang.Error_Success {
