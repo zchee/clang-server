@@ -64,6 +64,21 @@ func (f *File) Name() string {
 	return string(f.file.Name())
 }
 
+// Flags return the compiler flags.
+func (f *File) Flags() []string {
+	if len(f.flags) > 0 {
+		return f.flags
+	}
+
+	n := f.file.FlagsLength()
+	flags := make([]string, n)
+	for i := 0; i < n; i++ {
+		flags[i] = string(f.file.Flags(i))
+	}
+
+	return flags
+}
+
 // TranslationUnit return the libclang translation unit data.
 func (f *File) TranslationUnit() []byte {
 	if len(f.translationUnit) > 0 {
