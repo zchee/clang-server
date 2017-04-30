@@ -6,12 +6,15 @@ GO_PACKAGES = $(shell go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 
 GO_VENDOR_PACKAGES = $(shell go list ./vendor/...)
 
 GO_BUILD_FLAGS := -v
+GO_BUILD_TAGS ?=
 GO_TEST_FLAGS := -v
 
 GO_GCFLAGS ?= 
 GO_LDFLAGS := -X "main.Revision=$(shell git rev-parse --short HEAD)"
 
 CGO_CFLAGS = -Wdeprecated-declarations
+CGO_LDFLAGS ?=
+CGO_CXXFLAGS ?=
 
 # for developer build
 ifneq ($(CLANG_SERVER_DEBUG),)
@@ -27,8 +30,8 @@ ifneq ($(CLANG_SERVER_DEBUG_DWARF),)
 	endif
 	CGO_CFLAGS += -g
 else
-	GO_LDFLAGS += -w -s
-	CGO_CFLAGS += -O3
+	# GO_LDFLAGS += -w -s
+	# CGO_CFLAGS += -O3
 endif
 
 # -----------------------------------------------------------------------------
@@ -49,13 +52,32 @@ else
 
 	# link against LLVM's libc++ for only Darwin.
 	# avoid link the macOS system libc++ library.
-	ifeq ($(UNAME),Darwin)
-		CGO_CFLAGS += -Wl,-rpath,$(LLVM_LIBDIR)
-		CGO_CXXFLAGS += -Wl,-rpath,$(LLVM_LIBDIR)
-	endif
+	# ifeq ($(UNAME),Darwin)
+	# 	CGO_CFLAGS += -Wl,-rpath,$(LLVM_LIBDIR)
+	# 	CGO_CXXFLAGS += -Wl,-rpath,$(LLVM_LIBDIR)
+	# endif
 endif
 
-CGO_FLAGS = CC="$(CC)" CXX="$(CXX)" CGO_CFLAGS="$(CGO_CFLAGS)" CGO_CXXFLAGS="$(CGO_CXXFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)"
+CGO_FLAGS = CC="$(CC)" CXX="$(CXX)"
+ifneq ($(CGO_CFLAGS),)
+	CGO_FLAGS += CGO_CFLAGS="$(CGO_CFLAGS)"
+endif
+ifneq ($(CGO_LDFLAGS),)
+	CGO_FLAGS += CGO_LDFLAGS="$(CGO_LDFLAGS)"
+endif
+ifneq ($(CGO_CXXFLAGS),)
+	CGO_FLAGS += CGO_CXXFLAGS="$(CGO_CXXFLAGS)"
+endif
+
+ifneq ($(GO_BUILD_TAGS),)
+	GO_BUILD_FLAGS += -tags '$(GO_BUILD_TAGS)'
+endif
+ifneq ($(GO_GCFLAGS),)
+	GO_BUILD_FLAGS += -gcflags '$(GO_GCFLAGS)'
+endif
+ifneq ($(GO_LDFLAGS),)
+	GO_BUILD_FLAGS +=  -ldflags '$(GO_LDFLAGS)'
+endif
 
 # -----------------------------------------------------------------------------
 # vendor packages
@@ -106,10 +128,10 @@ bin:
 	@mkdir ./bin
 
 bin/clang-server: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server $(GO_SRCS)
-	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' -o ./bin/clang-server ./cmd/clang-server
+	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -o ./bin/clang-server ./cmd/clang-server
 
 bin/clang-client: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server $(GO_SRCS)
-	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' -o ./bin/clang-client ./cmd/clang-client
+	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -o ./bin/clang-client ./cmd/clang-client
 
 build-race: GO_BUILD_FLAGS+=-race
 build-race: ${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server
@@ -120,7 +142,7 @@ build/std-race:
 	go install -v -x -race std
 
 install:
-	$(CGO_FLAGS) go install $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' ./cmd/clang-server ./cmd/clang-client
+	$(CGO_FLAGS) go install $(GO_BUILD_FLAGS) -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' ./cmd/clang-server ./cmd/clang-client
 
 run: build
 	# ./bin/clang-server -path /Users/zchee/src/github.com/neovim/neovim
@@ -143,10 +165,10 @@ vet:
 vendor/install: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server ${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server
 
 ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server:
-	$(CGO_FLAGS) go install -v -x -tags '$(GO_BUILD_TAGS)' $(GO_VENDOR_PACKAGES)
+	$(CGO_FLAGS) go install $(GO_BUILD_FLAGS) ./vendor/...
 
-${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server:
-	$(CGO_FLAGS) go install -v -x -race -tags '$(GO_BUILD_TAGS)' $(GO_VENDOR_PACKAGES)
+${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server: GO_BUILD_FLAGS+=-race
+${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server
 
 vendor/update:
 	dep ensure -update -v
