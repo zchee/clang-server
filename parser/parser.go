@@ -5,7 +5,8 @@
 package parser
 
 import (
-	"encoding/binary"
+	"bytes"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -328,7 +329,7 @@ func (p *Parser) DeserializeTranslationUnit(idx clang.Index, buf []byte) (clang.
 	}
 	defer tmpfile.Close()
 
-	binary.Write(tmpfile, binary.LittleEndian, buf)
+	io.Copy(tmpfile, bytes.NewReader(buf))
 
 	if err := idx.TranslationUnit2(tmpfile.Name(), &tu); clang.ErrorCode(err) != clang.Error_Success {
 		return tu, errors.New(err.Spelling())
