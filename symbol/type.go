@@ -18,13 +18,13 @@ import (
 
 // File represents a C/C++ source file.
 //
-// table File {
-//   Name: string;
-//   TranslationUnit: string;
-//   Symbols: [Info];
-//   Headers: [Header];
-//   Includes: [string];
-// }
+//  table File {
+//    Name: string;
+//    TranslationUnit: string;
+//    Symbols: [Info];
+//    Headers: [Header];
+//    Includes: [string];
+//  }
 type File struct {
 	name            string
 	flags           []string
@@ -265,11 +265,11 @@ func (f *File) Serialize() *flatbuffers.Builder {
 
 // Info represents a location of C/C++ cursor symbol information.
 //
-// table Info {
-//   ID: string;
-//   Decls: [Location];
-//   Def: Location;
-// }
+//  table Info {
+//    ID: string;
+//    Decls: [Location];
+//    Def: Location;
+//  }
 type Info struct {
 	id      ID
 	decls   []Location
@@ -369,10 +369,10 @@ func (info *Info) Callers() []*Caller {
 
 // Header represents a location of include header file.
 //
-// table Header {
-//   FileID: string (id: 0, required, key); // -> []byte
-//   Mtime: long (id: 1); // time.Time.Unix(): int64
-// }
+//  table Header {
+//    FileID: string (id: 0, required, key); // -> []byte
+//    Mtime: long (id: 1); // time.Time.Unix(): int64
+//  }
 type Header struct {
 	fileid FileID
 	mtime  time.Time
@@ -406,10 +406,10 @@ func (h *Header) serialize(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 
 // Caller represents a location of caller function.
 //
-// table Caller {
-//   Location: Location (required);
-//   FuncCall: bool = false; // -> byte
-// }
+//  table Caller {
+//    Location: Location (required);
+//    FuncCall: bool = false; // -> byte
+//  }
 type Caller struct {
 	location Location
 	funcCall bool
@@ -451,13 +451,13 @@ func (c *Caller) serialize(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 // Location location of symbol.
 // TODO(zchee): method receiver is pointer for location?
 //
-// table Location {
-//   FileName: string;
-//   Line: uint;
-//   Col: uint = 0;
-//   Offset: uint;
-//   USR: string;
-// }
+//  table Location {
+//    FileName: string;
+//    Line: uint;
+//    Col: uint = 0;
+//    Offset: uint;
+//    USR: string;
+//  }
 type Location struct {
 	fileName string
 	line     uint32
