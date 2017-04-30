@@ -110,7 +110,7 @@ func (f *File) Symbols() []*Info {
 	return symbols
 }
 
-// Header return the C/C++ files included header files.
+// Headers return the C/C++ files included header files.
 func (f *File) Headers() []*Header {
 	if len(f.headers) > 0 {
 		return f.headers
