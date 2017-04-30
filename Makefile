@@ -1,8 +1,7 @@
 # -----------------------------------------------------------------------------
 # Go project environment
 
-# for gitCommit version
-GIT_REVISION = $(shell git rev-parse --short HEAD)
+GO_SRCS = $(shell find . -type f -name '*.go' -and -not -iwholename '*vendor*' -and -not -iwholename '*testdata*')
 GO_PACKAGES = $(shell go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'symbol/internal')
 GO_VENDOR_PACKAGES = $(shell go list ./vendor/...)
 
@@ -10,8 +9,7 @@ GO_BUILD_FLAGS := -v
 GO_TEST_FLAGS := -v
 
 GO_GCFLAGS ?= 
-# insert gitCommit version
-GO_LDFLAGS := -X "main.Revision=$(GIT_REVISION)"
+GO_LDFLAGS := -X "main.Revision=$(shell git rev-parse --short HEAD)"
 
 CGO_CFLAGS = -Wdeprecated-declarations
 
@@ -107,10 +105,10 @@ build: bin/clang-server bin/clang-client
 bin:
 	@mkdir ./bin
 
-bin/clang-server: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server
+bin/clang-server: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server $(GO_SRCS)
 	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' -o ./bin/clang-server ./cmd/clang-server
 
-bin/clang-client: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server
+bin/clang-client: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server $(GO_SRCS)
 	$(CGO_FLAGS) go build $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' -o ./bin/clang-client ./cmd/clang-client
 
 build-race: GO_BUILD_FLAGS+=-race
