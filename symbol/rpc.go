@@ -74,7 +74,6 @@ func (s *Server) Completion(ctx context.Context, loc *symbol.Location) (*flatbuf
 		}
 
 		file := GetRootAsFile(buf, 0)
-		file.TranslationUnit()
 
 		if cErr := s.idx.ParseTranslationUnit2(file.Name(), file.Flags(), nil, clang.DefaultEditingTranslationUnitOptions()|uint32(clang.TranslationUnit_KeepGoing), &s.tu); clang.ErrorCode(cErr) != clang.Error_Success {
 			log.Fatal(cErr)
