@@ -226,7 +226,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 
 	tuch := make(chan []byte, 1)
 	go func() {
-		tuch <- serializeTranslationUnit(arg.filename, tu)
+		tuch <- p.SerializeTranslationUnit(arg.filename, tu)
 	}()
 
 	// printDiagnostics(tu.Diagnostics())
@@ -296,9 +296,9 @@ func (p *Parser) ParseFile(arg parseArg) error {
 	return p.db.Put(arg.filename, buf.FinishedBytes())
 }
 
-// serializeTranslationUnit selialize the TranslationUnit to Clang serialized representation.
+// SerializeTranslationUnit serialize the TranslationUnit to Clang serialized representation.
 // TODO(zchee): Avoid ioutil.TempFile if possible.
-func serializeTranslationUnit(filename string, tu clang.TranslationUnit) []byte {
+func (p *Parser) SerializeTranslationUnit(filename string, tu clang.TranslationUnit) []byte {
 	tmpFile, err := ioutil.TempFile(os.TempDir(), filepath.Base(filename))
 	if err != nil {
 		log.Fatal(err)
