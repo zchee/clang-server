@@ -7,6 +7,7 @@ package symbol
 import (
 	"net"
 
+	"github.com/go-clang/v3.9/clang"
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/zchee/clang-server/indexdb"
 	"github.com/zchee/clang-server/internal/log"
@@ -23,28 +24,52 @@ func NewClangClient(cc *grpc.ClientConn) symbol.ClangClient {
 	return symbol.NewClangClient(cc)
 }
 
-type server struct {
-	db *indexdb.IndexDB
+// Server represents a clang-server gRPC server.
+type Server struct {
+	db       *indexdb.IndexDB
+	filename string
+	idx      clang.Index
+	tu       clang.TranslationUnit
 }
 
-func (s *server) Completion(ctx context.Context, loc *symbol.Location) (*flatbuffers.Builder, error) {
+// NewServer return the new Server with initialize idx.
+func NewServer() *Server {
+	return &Server{
+		idx: clang.NewIndex(0, 1),
+	}
+}
+
+// Completion implements symbol.ClangServer Completion interface.
+func (s *Server) Completion(ctx context.Context, loc *symbol.Location) (*flatbuffers.Builder, error) {
 	f := string(loc.FileName())
-	dir, _ := pathutil.FindProjectRoot(f)
-	db, err := indexdb.NewIndexDB(dir)
-	if err != nil {
-		return nil, err
+
+	if s.filename != f {
+		s.filename = f
+		dir, _ := pathutil.FindProjectRoot(f)
+		db, err := indexdb.NewIndexDB(dir)
+		if err != nil {
+			return nil, err
+		}
+		s.db = db
+		defer db.Close()
+
+		buf, err := db.Get(f)
+		if err != nil {
+			return nil, err
+		}
+
+		file := GetRootAsFile(buf, 0)
+		file.TranslationUnit()
+
+		if cErr := s.idx.ParseTranslationUnit2(file.Name(), file.Flags(), nil, clang.DefaultEditingTranslationUnitOptions()|uint32(clang.TranslationUnit_KeepGoing), &s.tu); clang.ErrorCode(cErr) != clang.Error_Success {
+			log.Fatal(cErr)
+		}
 	}
-	s.db = db
-	defer db.Close()
 
-	buf, err := db.Get(f)
-	if err != nil {
-		return nil, err
-	}
+	codeCompleteResults := new(CodeCompleteResults)
+	result := codeCompleteResults.Marshal(s.tu.CodeCompleteAt(f, loc.Line(), loc.Col(), nil, clang.DefaultCodeCompleteOptions()))
 
-	file := GetRootAsFile(buf, 0)
-
-	return file.Serialize(), nil
+	return result, nil
 }
 
 // Serve serve clang-server server with the flatbuffers gRPC custom codec.
@@ -56,7 +81,8 @@ func Serve() {
 	}
 
 	s := grpc.NewServer(grpc.CustomCodec(flatbuffers.FlatbuffersCodec{}))
-	symbol.RegisterClangServer(s, &server{})
+	server := NewServer()
+	symbol.RegisterClangServer(s, server)
 	if err := s.Serve(l); err != nil {
 		log.Fatal(err)
 	}
