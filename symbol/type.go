@@ -554,3 +554,164 @@ func CreateLocation(filename string, line, col uint32) *flatbuffers.Builder {
 
 	return builder
 }
+
+// ----------------------------------------------------------------------------
+
+// CompleteItem represents a vim complete-items dictionary.
+//
+//  table CompleteItem {
+//    Word: string (required); // -> []byte
+//    Abbr: string; // -> []byte
+//    Menu: string; // -> []byte
+//    Info: string; // -> []byte
+//    Kind: string; // -> []byte
+//    Icase: bool; // -> byte
+//    Dup: bool; // -> byte
+//  }
+type CompleteItem struct {
+	word  string
+	abbr  string
+	menu  string
+	info  string
+	kind  string
+	icase bool
+	dup   bool
+
+	completeItems *symbol.CompleteItem
+}
+
+// Word return the text that will inserted, mandatory.
+func (c *CompleteItem) Word() string {
+	return string(c.completeItems.Word())
+}
+
+// Abbr return the abbreviation of "word", when not empty it is used in the menu instead of "word".
+func (c *CompleteItem) Abbr() string {
+	return string(c.completeItems.Abbr())
+}
+
+// Menu return the extra text for the popup menu, displayed after "word" or "abbr".
+func (c *CompleteItem) Menu() string {
+	return string(c.completeItems.Menu())
+}
+
+// Info return the more information about the item, can be displayed in a preview window.
+func (c *CompleteItem) Info() string {
+	return string(c.completeItems.Info())
+}
+
+// Kind return the single letter indicating the type of completion.
+func (c *CompleteItem) Kind() string {
+	return string(c.completeItems.Kind())
+}
+
+// Icase return the more information about the item, can be displayed in a preview window.
+func (c *CompleteItem) Icase() bool {
+	return c.completeItems.Icase() != byte(0)
+}
+
+// Dup return the when non-zero this match will be added even when an item with the same word is already present.
+func (c *CompleteItem) Dup() bool {
+	return c.completeItems.Dup() != byte(0)
+}
+
+// Marshal returns the flatbuffers binary encoding of cs.
+func (c *CompleteItem) Marshal(builder *flatbuffers.Builder, cs clang.CompletionString) flatbuffers.UOffsetT {
+	numChunks := int(cs.NumChunks())
+
+	var word, typ, placeholder string
+	for i := 0; i < numChunks; i++ {
+		switch text := cs.ChunkText(uint32(i)); cs.ChunkKind(uint32(i)) {
+		case clang.CompletionChunk_TypedText:
+			word += text
+			placeholder += text
+		case clang.CompletionChunk_ResultType:
+			typ += text
+		default:
+			placeholder += text
+		}
+	}
+
+	uword := builder.CreateString(word)
+	uabbr := builder.CreateString(placeholder)
+	umenu := builder.CreateString("")
+	uinfo := builder.CreateString(placeholder)
+	ukind := builder.CreateString(typ)
+
+	symbol.CompleteItemStart(builder)
+	symbol.CompleteItemAddWord(builder, uword)
+	symbol.CompleteItemAddAbbr(builder, uabbr)
+	symbol.CompleteItemAddMenu(builder, umenu)
+	symbol.CompleteItemAddInfo(builder, uinfo)
+	symbol.CompleteItemAddKind(builder, ukind)
+	symbol.CompleteItemAddIcase(builder, byte(1))
+	symbol.CompleteItemAddDup(builder, byte(1))
+
+	return symbol.CompleteItemEnd(builder)
+}
+
+// CodeCompleteResults represents a list of vim complete-items dictionary.
+//
+//  table CodeCompleteResults {
+//    Results: [CompleteItem];
+//  }
+type CodeCompleteResults struct {
+	codeCompleteResults *symbol.CodeCompleteResults
+}
+
+// NewCodeCompleteResults returns the flatbuffers binary of CodeCompleteResults.
+func NewCodeCompleteResults(v *symbol.CodeCompleteResults) *CodeCompleteResults {
+	return &CodeCompleteResults{
+		codeCompleteResults: v,
+	}
+}
+
+// Results return the slice of CompleteItem.
+func (c *CodeCompleteResults) Results() []CompleteItem {
+	n := int(c.codeCompleteResults.ResultsLength())
+	itemList := make([]CompleteItem, n)
+
+	for i := 0; i < n; i++ {
+		obj := new(symbol.CompleteItem)
+		if c.codeCompleteResults.Results(obj, i) {
+			itemList[i] = CompleteItem{
+				word:  string(obj.Word()),
+				abbr:  string(obj.Abbr()),
+				menu:  string(obj.Menu()),
+				info:  string(obj.Info()),
+				kind:  string(obj.Kind()),
+				icase: true,
+				dup:   true,
+			}
+		}
+	}
+
+	return itemList
+}
+
+// Marshal returns the flatbuffers binary encoding of clang.CodeCompleteResults v.
+func (c *CodeCompleteResults) Marshal(v *clang.CodeCompleteResults) *flatbuffers.Builder {
+	builder := flatbuffers.NewBuilder(0)
+
+	resultsNum := int(v.NumResults())
+	if resultsNum == 0 {
+		return builder
+	}
+
+	resultsOffsets := make([]flatbuffers.UOffsetT, resultsNum)
+	for i, res := range v.Results() {
+		item := new(CompleteItem)
+		resultsOffsets[i] = item.Marshal(builder, res.CompletionString())
+	}
+	symbol.CodeCompleteResultsStartResultsVector(builder, resultsNum)
+	for i := resultsNum - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(resultsOffsets[i])
+	}
+	resultsVecOffset := builder.EndVector(resultsNum)
+
+	symbol.CodeCompleteResultsStart(builder)
+	symbol.CodeCompleteResultsAddResults(builder, resultsVecOffset)
+	builder.Finish(symbol.CodeCompleteResultsEnd(builder))
+
+	return builder
+}
