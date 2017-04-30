@@ -208,7 +208,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 		}
 
 		data := symbol.GetRootAsFile(buf, 0)
-		tu, err = deserializeTranslationUnit(p.idx, data.TranslationUnit())
+		tu, err = p.DeserializeTranslationUnit(p.idx, data.TranslationUnit())
 		if err != nil {
 			return err
 		}
@@ -318,7 +318,8 @@ func (p *Parser) SerializeTranslationUnit(filename string, tu clang.TranslationU
 	return buf
 }
 
-func deserializeTranslationUnit(idx clang.Index, buf []byte) (clang.TranslationUnit, error) {
+// DeserializeTranslationUnit deserialize the TranslationUnit from buf Clang serialized representation.
+func (p *Parser) DeserializeTranslationUnit(idx clang.Index, buf []byte) (clang.TranslationUnit, error) {
 	var tu clang.TranslationUnit
 
 	tmpfile, err := ioutil.TempFile(os.TempDir(), "clang-server")
