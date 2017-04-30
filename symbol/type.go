@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-clang/v3.9/clang"
 	flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/zchee/clang-server/symbol/internal/symbol"
+	"github.com/zchee/clang-server/internal/symbol"
 )
 
 // ----------------------------------------------------------------------------

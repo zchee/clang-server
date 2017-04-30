@@ -185,9 +185,9 @@ vendor/clean:
 
 
 fbs:
-	@${RM} -r ./symbol/internal/symbol
+	@${RM} -r ./internal/symbol
 	flatc --go --grpc $(shell find ./symbol -type f -name '*.fbs')
-	@gofmt -w ./symbol/internal/symbol
+	@gofmt -w ./internal/symbol
 
 clang-format:
 	clang-format -i -sort-includes $(shell find testdata -type f -name '*.c' -or -name '*.cpp')

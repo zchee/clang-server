@@ -12,7 +12,7 @@ import (
 	"github.com/zchee/clang-server/indexdb"
 	"github.com/zchee/clang-server/internal/log"
 	"github.com/zchee/clang-server/internal/pathutil"
-	"github.com/zchee/clang-server/symbol/internal/symbol"
+	"github.com/zchee/clang-server/internal/symbol"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
