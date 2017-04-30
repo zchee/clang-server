@@ -35,7 +35,7 @@ type Server struct {
 // NewServer return the new Server with initialize idx.
 func NewServer() *Server {
 	return &Server{
-		idx: clang.NewIndex(0, 1),
+		idx: clang.NewIndex(0, 0),
 	}
 }
 
