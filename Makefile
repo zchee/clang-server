@@ -113,7 +113,11 @@ bin/clang-client: ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server $(GO_
 
 build-race: GO_BUILD_FLAGS+=-race
 build-race: ${GOPATH}/pkg/darwin_amd64_race/github.com/zchee/clang-server
+build-race: build/std-race
 build-race: build
+
+build/std-race:
+	go install -v -x -race std
 
 install:
 	$(CGO_FLAGS) go install $(GO_BUILD_FLAGS) -tags '$(GO_BUILD_TAGS)' -gcflags '$(GO_GCFLAGS)' -ldflags '$(GO_LDFLAGS)' ./cmd/clang-server ./cmd/clang-client
