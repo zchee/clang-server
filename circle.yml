@@ -52,5 +52,5 @@ stages:
         command: |
           go get -u github.com/golang/lint/golint
           test -z "$(gofmt -e -s -l $(find . -not -iwholename '*vendor*' -and -name '*.go' -print) | tee /dev/stderr)"
-          test -z "$(golint $(go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'symbol/internal') | tee /dev/stderr)"
-          go vet $(go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'symbol/internal')
+          test -z "$(golint $(go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'internal/symbol') | tee /dev/stderr)"
+          go vet $(go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'internal/symbol')
