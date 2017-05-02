@@ -2,7 +2,7 @@
 # Go project environment
 
 GO_SRCS = $(shell find . -type f -name '*.go' -and -not -iwholename '*vendor*' -and -not -iwholename '*testdata*')
-GO_PACKAGES = $(shell go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'symbol/internal')
+GO_PACKAGES = $(shell go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'internal/symbol')
 GO_VENDOR_PACKAGES = $(shell go list ./vendor/...)
 
 GO_BUILD_FLAGS := -v
