@@ -23,6 +23,7 @@ import (
 	"github.com/zchee/clang-server/internal/log"
 	"github.com/zchee/clang-server/internal/pathutil"
 	"github.com/zchee/clang-server/parser/builtinheader"
+	"github.com/zchee/clang-server/rpc"
 	"github.com/zchee/clang-server/symbol"
 )
 
@@ -48,7 +49,7 @@ type Parser struct {
 	idx    clang.Index
 	cd     *compilationdatabase.CompilationDatabase
 	db     *indexdb.IndexDB
-	server *symbol.Server
+	server *rpc.GRPCServer
 
 	dispatcher *dispatcher
 
@@ -98,7 +99,7 @@ func NewParser(path string, config *Config) *Parser {
 		idx:         clang.NewIndex(0, 0), // disable excludeDeclarationsFromPCH, enable displayDiagnostics
 		cd:          cd,
 		db:          db,
-		server:      symbol.NewServer(),
+		server:      rpc.NewGRPCServer(),
 	}
 
 	if config.Debug {

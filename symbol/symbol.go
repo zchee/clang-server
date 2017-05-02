@@ -4,7 +4,11 @@
 
 package symbol
 
-import "github.com/go-clang/v3.9/clang"
+import (
+	"github.com/go-clang/v3.9/clang"
+	"github.com/zchee/clang-server/internal/symbol"
+	"google.golang.org/grpc"
+)
 
 // FromCursor return the location of symbol from cursor.
 func FromCursor(cursor clang.Cursor) Location {
@@ -26,4 +30,14 @@ func FromCursor(cursor clang.Cursor) Location {
 		offset:   offset,
 		usr:      usr,
 	}
+}
+
+// NewClangClient retern the new symbol.ClangClient.
+func NewClangClient(cc *grpc.ClientConn) symbol.ClangClient {
+	return symbol.NewClangClient(cc)
+}
+
+// RegisterClangServer register a service and its implementation to the gRPC server.
+func RegisterClangServer(s *grpc.Server, srv symbol.ClangServer) {
+	symbol.RegisterClangServer(s, srv)
 }
