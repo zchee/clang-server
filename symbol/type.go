@@ -38,6 +38,9 @@ type File struct {
 	file *symbol.File
 }
 
+// SymbolFile type alias of symbol.File.
+type SymbolFile = symbol.File
+
 // NewFile return the new File.
 func NewFile(name string, flags []string) *File {
 	return &File{
@@ -294,6 +297,9 @@ type Info struct {
 	info *symbol.Info
 }
 
+// SymbolInfo type alias of symbol.Info.
+type SymbolInfo = symbol.Info
+
 // serialize serializes the Info.
 func (info *Info) serialize(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	id := builder.CreateString(info.id.String())
@@ -395,6 +401,9 @@ type Header struct {
 	header *symbol.Header
 }
 
+// SymbolHeader type alias of symbol.Header.
+type SymbolHeader = symbol.Header
+
 // FileID return the header FileID.
 func (h *Header) FileID() FileID {
 	return ToFileID(string(h.header.FileID()))
@@ -431,6 +440,9 @@ type Caller struct {
 
 	caller *symbol.Caller
 }
+
+// SymbolCaller type alias of symbol.Caller.
+type SymbolCaller = symbol.Caller
 
 // Location return the location of caller function.
 func (c *Caller) Location() Location {
@@ -482,6 +494,9 @@ type Location struct {
 
 	location *symbol.Location
 }
+
+// SymbolLocation type alias of symbol.Location.
+type SymbolLocation = symbol.Location
 
 // FileName return the filename of location.
 func (l *Location) FileName() string {
@@ -580,6 +595,9 @@ type CompleteItem struct {
 	completeItems *symbol.CompleteItem
 }
 
+// SymbolCompleteItem type alias of symbol.CompleteItem.
+type SymbolCompleteItem = symbol.CompleteItem
+
 // Word return the text that will inserted, mandatory.
 func (c *CompleteItem) Word() string {
 	return string(c.completeItems.Word())
@@ -658,6 +676,9 @@ func (c *CompleteItem) Marshal(builder *flatbuffers.Builder, cs clang.Completion
 type CodeCompleteResults struct {
 	codeCompleteResults *symbol.CodeCompleteResults
 }
+
+// SymbolCodeCompleteResults type alias of symbol.CodeCompleteResults.
+type SymbolCodeCompleteResults = symbol.CodeCompleteResults
 
 // NewCodeCompleteResults returns the flatbuffers binary of CodeCompleteResults.
 func NewCodeCompleteResults(v *symbol.CodeCompleteResults) *CodeCompleteResults {
