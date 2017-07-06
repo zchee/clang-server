@@ -21,7 +21,20 @@ stages:
           echo "deb http://apt.llvm.org/jessie/ llvm-toolchain-jessie-${LLVM_VERSION} main" >> /etc/apt/sources.list
           wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
           apt-get update
-          apt-get install -y --no-install-recommends clang-${LLVM_VERSION} libclang-common-${LLVM_VERSION}-dev libclang-${LLVM_VERSION}-dev libclang1-${LLVM_VERSION} libclang1-${LLVM_VERSION}-dbg libllvm${LLVM_VERSION} libllvm${LLVM_VERSION}-dbg lldb-${LLVM_VERSION} llvm-${LLVM_VERSION} llvm-${LLVM_VERSION}-dev llvm-${LLVM_VERSION}-runtime lldb-${LLVM_VERSION} liblldb-${LLVM_VERSION}-dbg
+          apt-get install -y --no-install-recommends \
+            clang-${LLVM_VERSION} \
+            libclang-common-${LLVM_VERSION}-dev \
+            libclang-${LLVM_VERSION}-dev \
+            libclang1-${LLVM_VERSION} \
+            libclang1-${LLVM_VERSION}-dbg \
+            libllvm${LLVM_VERSION} \
+            libllvm${LLVM_VERSION}-dbg \
+            lldb-${LLVM_VERSION} \
+            llvm-${LLVM_VERSION} \
+            llvm-${LLVM_VERSION}-dev \
+            llvm-${LLVM_VERSION}-runtime \
+            lldb-${LLVM_VERSION} \
+            liblldb-${LLVM_VERSION}-dbg
           ln -s /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
           ln -s /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
 
@@ -35,10 +48,10 @@ stages:
           CGO_LDFLAGS: -L/usr/lib/llvm-$LLVM_VERSION/lib
         command: |
           echo "mode: atomic" > $COVERAGE_RESULT
-          for pkg in $(go list ./... | grep -v vendor); do
+          for pkg in $(go list ./...); do
             go test -v -race -cover -covermode=atomic -coverprofile=$COVERAGE_OUT $pkg
             if [ -f $COVERAGE_OUT ]; then
-              tail -n +2 $COVERAGE_OUT >> $COVERAGE_RESULT; rm -f $COVERAGE_OUT
+              cat $COVERAGE_OUT >> $COVERAGE_RESULT; rm -f $COVERAGE_OUT
             fi
           done
 
@@ -52,5 +65,5 @@ stages:
         command: |
           go get -u github.com/golang/lint/golint
           test -z "$(gofmt -e -s -l $(find . -not -iwholename '*vendor*' -and -name '*.go' -print) | tee /dev/stderr)"
-          test -z "$(golint $(go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'internal/symbol') | tee /dev/stderr)"
-          go vet $(go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'internal/symbol')
+          test -z "$(golint $(go list ./... | grep -v -e 'builtinheader' -e 'internal/symbol') | tee /dev/stderr)"
+          go vet $(go list ./... | grep -v -e -e 'builtinheader' -e 'internal/symbol')
