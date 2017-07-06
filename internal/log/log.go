@@ -102,6 +102,7 @@ func Debugln(format string, v ...interface{}) {
 	debugLogger.Output(2, fmt.Sprintln(v...))
 }
 
+// Dump dumps v with spew style.
 func Dump(v ...interface{}) {
 	spew.Dump(v...)
 }
