@@ -1,48 +1,47 @@
-
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "github.com/davecgh/go-spew"
 
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "github.com/go-clang/v3.9"
 
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "github.com/google/flatbuffers"
 
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "github.com/minio/blake2b-simd"
 
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "github.com/pkg/errors"
 
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "github.com/pkgutil/osutil"
 
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "github.com/pkgutil/stringsutil"
 
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "github.com/syndtr/goleveldb"
 
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "github.com/tmthrgd/go-hex"
 
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "github.com/zchee/go-xdgbasedir"
 
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "golang.org/x/net"
 
-[[dependencies]]
+[[constraint]]
   branch = "master"
   name = "google.golang.org/grpc"

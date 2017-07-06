@@ -8,6 +8,7 @@ package home
 
 import (
 	"os"
+	"path/filepath"
 )
 
 // Dir detects and returns the user home directory.
@@ -15,7 +16,7 @@ func Dir() string {
 	// At first, Check the $HOME environment variable
 	usrHome := os.Getenv("HOME")
 	if usrHome != "" {
-		return usrHome
+		return filepath.FromSlash(usrHome)
 	}
 
 	// TODO(zchee): In Windows OS, which of $HOME and these checks has priority?
@@ -24,5 +25,5 @@ func Dir() string {
 		usrHome = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
 	}
 
-	return usrHome
+	return filepath.FromSlash(usrHome)
 }

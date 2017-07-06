@@ -15,8 +15,7 @@ import (
 	"fmt"
 )
 
-// ErrLength results from decoding an odd length slice.
-var ErrLength = errors.New("go-hex: odd length hex string")
+var errLength = errors.New("go-hex: odd length hex string")
 
 var (
 	lower = []byte("0123456789abcdef")
@@ -41,18 +40,18 @@ func DecodedLen(n int) int {
 }
 
 // Encode encodes src into EncodedLen(len(src))
-// bytes of dst.  As a convenience, it returns the number
+// bytes of dst. As a convenience, it returns the number
 // of bytes written to dst, but this value is always EncodedLen(len(src)).
 // Encode implements lowercase hexadecimal encoding.
 func Encode(dst, src []byte) int {
 	return RawEncode(dst, src, lower)
 }
 
-// EncodeUC encodes src into EncodedLen(len(src))
-// bytes of dst.  As a convenience, it returns the number
+// EncodeUpper encodes src into EncodedLen(len(src))
+// bytes of dst. As a convenience, it returns the number
 // of bytes written to dst, but this value is always EncodedLen(len(src)).
-// EncodeUC implements uppercase hexadecimal encoding.
-func EncodeUC(dst, src []byte) int {
+// EncodeUpper implements uppercase hexadecimal encoding.
+func EncodeUpper(dst, src []byte) int {
 	return RawEncode(dst, src, upper)
 }
 
@@ -61,8 +60,8 @@ func EncodeToString(src []byte) string {
 	return RawEncodeToString(src, lower)
 }
 
-// EncodeUCToString returns the uppercase hexadecimal encoding of src.
-func EncodeUCToString(src []byte) string {
+// EncodeUpperToString returns the uppercase hexadecimal encoding of src.
+func EncodeUpperToString(src []byte) string {
 	return RawEncodeToString(src, upper)
 }
 

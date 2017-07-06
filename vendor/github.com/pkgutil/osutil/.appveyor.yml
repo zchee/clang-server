@@ -1,0 +1,41 @@
+version: 1.0.{build}
+
+shallow_clone: true
+
+# Source Config
+clone_folder: c:\gopath\src\github.com\pkgutil\osutil
+
+# Build host
+environment:
+  GOPATH: c:\gopath
+  GOVERSION: 1.8
+
+init:
+  - git config --global core.autocrlf input
+
+# Install
+install:
+  # Install the specific Go version.
+  - rmdir c:\go /s /q
+  - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.msi
+  - msiexec /i go%GOVERSION%.windows-amd64.msi /q
+  - set Path=c:\go\bin;c:\gopath\bin;%Path%
+  - go version
+  - go env
+
+# Build
+build: false
+
+# Test
+before_test:
+  - go get -u github.com/golang/lint/golint
+  - go get -u github.com/haya14busa/goverage
+test_script:
+  - goverage -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+after_test:
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - pip install -U codecov
+  - codecov
+  - gofmt -s -l -w .
+  - golint ./...
+  - go vet ./...

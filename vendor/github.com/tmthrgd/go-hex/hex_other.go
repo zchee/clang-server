@@ -29,7 +29,7 @@ func RawEncode(dst, src, alpha []byte) int {
 // If Decode encounters invalid input, it returns an error describing the failure.
 func Decode(dst, src []byte) (int, error) {
 	if len(src)%2 == 1 {
-		return 0, ErrLength
+		return 0, errLength
 	}
 
 	for i := 0; i < len(src)/2; i++ {
