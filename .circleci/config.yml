@@ -15,9 +15,12 @@ jobs:
       - run:
           name: "Install LLVM toolchain"
           command: |
-            set -ex
+            set -x
+            apt-get update
+            apt-get install -y --no-install-recommends \
+              gnupg
             echo "deb http://apt.llvm.org/jessie/ llvm-toolchain-jessie-${LLVM_VERSION} main" >> /etc/apt/sources.list
-            wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+            curl -fsSL http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
             apt-get update
             apt-get install -y --no-install-recommends \
               clang-${LLVM_VERSION} \
@@ -43,7 +46,7 @@ jobs:
             COVERAGE_RESULT: coverage.out
             CC: clang
             CXX: clang++
-            CGO_LDFLAGS: -L/usr/lib/llvm-$LLVM_VERSION/lib
+            CGO_LDFLAGS: -L/usr/lib/llvm-${LLVM_VERSION}/lib
           command: |
             echo "mode: atomic" > $COVERAGE_RESULT
             for pkg in $(go list ./...); do
@@ -62,6 +65,6 @@ jobs:
           name: "gofmt, golint and go vet"
           command: |
             go get -u github.com/golang/lint/golint
-            test -z "$(gofmt -e -s -l $(find . -not -iwholename '*vendor*' -and -name '*.go' -print) | tee /dev/stderr)"
+            test -z "$(gofmt -e -s -l $(find . -not -iwholename '*vendor*' -and -name '*.go') | tee /dev/stderr)"
             test -z "$(golint $(go list ./... | grep -v -e 'builtinheader' -e 'internal/symbol') | tee /dev/stderr)"
-            go vet $(go list ./... | grep -v -e -e 'builtinheader' -e 'internal/symbol')
+            go vet $(go list ./... | grep -v -e 'builtinheader' -e 'internal/symbol')
