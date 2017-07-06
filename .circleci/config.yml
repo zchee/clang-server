@@ -66,5 +66,5 @@ jobs:
           command: |
             go get -u github.com/golang/lint/golint
             test -z "$(gofmt -e -s -l $(find . -not -iwholename '*vendor*' -and -name '*.go') | tee /dev/stderr)"
-            test -z "$(golint $(go list ./... | grep -v -e 'builtinheader' -e 'internal/symbol') | tee /dev/stderr)"
+            test -z "$(golint $(go list ./... | grep -v -e 'builtinheader' -e 'internal/symbol') | grep -v -e symbol/type.go | tee /dev/stderr)"
             go vet $(go list ./... | grep -v -e 'builtinheader' -e 'internal/symbol')
