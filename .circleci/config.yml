@@ -1,69 +1,67 @@
 version: 2
-executorType: docker
-
-containerInfo:
-  - image: golang:1.9beta2
-
-stages:
+jobs:
   build:
-    workDir: /go/src/github.com/zchee/clang-server
+    docker:
+      - image: golang:1.9beta2
+    working_directory: /go/src/github.com/zchee/clang-server
     environment:
       CIRCLE_PROJECT_USERNAME: zchee
       CIRCLE_PROJECT_REPONAME: clang-server
       LLVM_VERSION: 3.9
+
     steps:
-      - type: checkout
+      - checkout
 
-      - type: shell
-        name: "Install LLVM toolchain"
-        command: |
-          set -ex
-          echo "deb http://apt.llvm.org/jessie/ llvm-toolchain-jessie-${LLVM_VERSION} main" >> /etc/apt/sources.list
-          wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            clang-${LLVM_VERSION} \
-            libclang-common-${LLVM_VERSION}-dev \
-            libclang-${LLVM_VERSION}-dev \
-            libclang1-${LLVM_VERSION} \
-            libclang1-${LLVM_VERSION}-dbg \
-            libllvm${LLVM_VERSION} \
-            libllvm${LLVM_VERSION}-dbg \
-            lldb-${LLVM_VERSION} \
-            llvm-${LLVM_VERSION} \
-            llvm-${LLVM_VERSION}-dev \
-            llvm-${LLVM_VERSION}-runtime \
-            lldb-${LLVM_VERSION} \
-            liblldb-${LLVM_VERSION}-dbg
-          ln -s /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-          ln -s /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
+      - run:
+          name: "Install LLVM toolchain"
+          command: |
+            set -ex
+            echo "deb http://apt.llvm.org/jessie/ llvm-toolchain-jessie-${LLVM_VERSION} main" >> /etc/apt/sources.list
+            wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+            apt-get update
+            apt-get install -y --no-install-recommends \
+              clang-${LLVM_VERSION} \
+              libclang-common-${LLVM_VERSION}-dev \
+              libclang-${LLVM_VERSION}-dev \
+              libclang1-${LLVM_VERSION} \
+              libclang1-${LLVM_VERSION}-dbg \
+              libllvm${LLVM_VERSION} \
+              libllvm${LLVM_VERSION}-dbg \
+              lldb-${LLVM_VERSION} \
+              llvm-${LLVM_VERSION} \
+              llvm-${LLVM_VERSION}-dev \
+              llvm-${LLVM_VERSION}-runtime \
+              lldb-${LLVM_VERSION} \
+              liblldb-${LLVM_VERSION}-dbg
+            ln -s /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
+            ln -s /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
 
-      - type: shell
-        name: "go test -v -race -cover ..."
-        environment:
-          COVERAGE_OUT: coverage.tmp.out
-          COVERAGE_RESULT: coverage.out
-          CC: clang
-          CXX: clang++
-          CGO_LDFLAGS: -L/usr/lib/llvm-$LLVM_VERSION/lib
-        command: |
-          echo "mode: atomic" > $COVERAGE_RESULT
-          for pkg in $(go list ./...); do
-            go test -v -race -cover -covermode=atomic -coverprofile=$COVERAGE_OUT $pkg
-            if [ -f $COVERAGE_OUT ]; then
-              cat $COVERAGE_OUT >> $COVERAGE_RESULT; rm -f $COVERAGE_OUT
-            fi
-          done
+      - run:
+          name: "go test -v -race -cover ..."
+          environment:
+            COVERAGE_OUT: coverage.tmp.out
+            COVERAGE_RESULT: coverage.out
+            CC: clang
+            CXX: clang++
+            CGO_LDFLAGS: -L/usr/lib/llvm-$LLVM_VERSION/lib
+          command: |
+            echo "mode: atomic" > $COVERAGE_RESULT
+            for pkg in $(go list ./...); do
+              go test -v -race -cover -covermode=atomic -coverprofile=$COVERAGE_OUT $pkg
+              if [ -f $COVERAGE_OUT ]; then
+                cat $COVERAGE_OUT >> $COVERAGE_RESULT; rm -f $COVERAGE_OUT
+              fi
+            done
 
-      - type: shell
-        name: "Uploading reports to codecov.io"
-        command: |
-          bash <(curl -s https://codecov.io/bash)
+      - run:
+          name: "Uploading reports to codecov.io"
+          command: |
+            bash <(curl -s https://codecov.io/bash)
 
-      - type: shell
-        name: "gofmt, golint and go vet"
-        command: |
-          go get -u github.com/golang/lint/golint
-          test -z "$(gofmt -e -s -l $(find . -not -iwholename '*vendor*' -and -name '*.go' -print) | tee /dev/stderr)"
-          test -z "$(golint $(go list ./... | grep -v -e 'builtinheader' -e 'internal/symbol') | tee /dev/stderr)"
-          go vet $(go list ./... | grep -v -e -e 'builtinheader' -e 'internal/symbol')
+      - run:
+          name: "gofmt, golint and go vet"
+          command: |
+            go get -u github.com/golang/lint/golint
+            test -z "$(gofmt -e -s -l $(find . -not -iwholename '*vendor*' -and -name '*.go' -print) | tee /dev/stderr)"
+            test -z "$(golint $(go list ./... | grep -v -e 'builtinheader' -e 'internal/symbol') | tee /dev/stderr)"
+            go vet $(go list ./... | grep -v -e -e 'builtinheader' -e 'internal/symbol')
