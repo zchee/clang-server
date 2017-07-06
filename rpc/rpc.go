@@ -20,7 +20,6 @@ import (
 
 const port = ":50051"
 
-// GRPCServer represents a clang-server gRPC server.
 type server struct {
 	db       *indexdb.IndexDB
 	filename string
@@ -28,6 +27,7 @@ type server struct {
 	tu       clang.TranslationUnit
 }
 
+// GRPCServer represents a clang-server gRPC server.
 type GRPCServer struct {
 	server
 }
