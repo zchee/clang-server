@@ -20,6 +20,7 @@ import (
 	"github.com/pkgutil/stringsutil"
 	"github.com/zchee/clang-server/compilationdatabase"
 	"github.com/zchee/clang-server/indexdb"
+	"github.com/zchee/clang-server/internal/hashutil"
 	"github.com/zchee/clang-server/internal/log"
 	"github.com/zchee/clang-server/internal/pathutil"
 	"github.com/zchee/clang-server/parser/builtinheader"
@@ -203,8 +204,10 @@ type parseArg struct {
 func (p *Parser) ParseFile(arg parseArg) error {
 	var tu clang.TranslationUnit
 
-	if p.db.Has(arg.filename) {
-		buf, err := p.db.Get(arg.filename)
+	fhash := hashutil.NewHashString(arg.filename)
+	fh := fhash[:]
+	if p.db.Has(fh) {
+		buf, err := p.db.Get(fh)
 		if err != nil {
 			return err
 		}
@@ -295,7 +298,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 	log.Debugf("Goroutine:%d", runtime.NumGoroutine())
 	log.Debugf("================== DONE: filename: %+v ==================\n\n\n", arg.filename)
 
-	return p.db.Put(arg.filename, buf.FinishedBytes())
+	return p.db.Put(fh, buf.FinishedBytes())
 }
 
 // SerializeTranslationUnit serialize the TranslationUnit to Clang serialized representation.

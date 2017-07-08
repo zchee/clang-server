@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/zchee/clang-server/internal/hashutil"
 	"github.com/zchee/clang-server/internal/pathutil"
 )
 
@@ -43,23 +42,20 @@ func (i *IndexDB) Close() error {
 
 // Put puts the selialized C/C++ files symbol data to leveldb.
 // The key is using blake2b hashed filename.
-func (i *IndexDB) Put(filename string, data []byte) error {
-	fileID := hashutil.NewHashString(filename)
-	return i.db.Put(hashutil.Encode(fileID), data, nil)
+func (i *IndexDB) Put(key []byte, value []byte) error {
+	return i.db.Put(key[:], value, nil)
 }
 
 // Get gets the selialized C/C++ files symbol data from leveldb.
 // The key is using blake2b hashed filename.
-func (i *IndexDB) Get(filename string) ([]byte, error) {
-	fileID := hashutil.NewHashString(filename)
-	return i.db.Get(hashutil.Encode(fileID), nil)
+func (i *IndexDB) Get(key []byte) ([]byte, error) {
+	return i.db.Get(key[:], nil)
 }
 
 // Has reports whether filename symbol data on leveldb.
 // The key is using blake2b hashed filename.
-func (i *IndexDB) Has(filename string) bool {
-	fileID := hashutil.NewHashString(filename)
-	has, err := i.db.Has(hashutil.Encode(fileID), nil)
+func (i *IndexDB) Has(key []byte) bool {
+	has, err := i.db.Has(key[:], nil)
 	if err != nil {
 		return false
 	}
