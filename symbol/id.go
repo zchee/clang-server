@@ -13,7 +13,7 @@ import (
 type ID [blake2b.Size]byte
 
 func (id ID) String() string {
-	return hashutil.EncodeToString(id)
+	return hashutil.EncodeToString(id[:])
 }
 
 // Bytes reterun the ID byte slice.
@@ -30,7 +30,7 @@ func (id ID) IsEmpty() bool {
 type FileID [blake2b.Size]byte
 
 func (id FileID) String() string {
-	return hashutil.EncodeToString(id)
+	return hashutil.EncodeToString(id[:])
 }
 
 // Bytes reterun the FileID byte slice.
