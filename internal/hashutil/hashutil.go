@@ -26,8 +26,8 @@ func NewHashString(s string) [Size]byte {
 }
 
 // EncodeToString returns the hexadecimal encoded string of blake2b hashed b.
-func EncodeToString(b [Size]byte) string {
-	return hex.EncodeToString(b[:])
+func EncodeToString(b []byte) string {
+	return hex.EncodeToString(b)
 }
 
 // byteSliceToString converts the []byte to string without a heap allocation.

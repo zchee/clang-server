@@ -69,7 +69,7 @@ func TestNewHashString(t *testing.T) {
 
 func TestEncodeToString(t *testing.T) {
 	type args struct {
-		b [Size]byte
+		b []byte
 	}
 	tests := []struct {
 		name string
@@ -78,7 +78,7 @@ func TestEncodeToString(t *testing.T) {
 	}{
 		{
 			name: "normal",
-			args: args{b: [Size]byte{
+			args: args{b: []byte{
 				167, 16, 121, 212, 40, 83, 222, 162,
 				110, 69, 48, 4, 51, 134, 112, 165,
 				56, 20, 183, 129, 55, 255, 190, 208,
