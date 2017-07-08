@@ -44,13 +44,12 @@ var defaultClangOption = clang.DefaultEditingTranslationUnitOptions() | uint32(c
 
 // Parser represents a C/C++ AST parser.
 type Parser struct {
-	root        string
-	clangOption uint32
-
 	idx    clang.Index
 	cd     *compilationdatabase.CompilationDatabase
 	db     *indexdb.IndexDB
 	server *rpc.GRPCServer
+
+	config *Config
 
 	dispatcher *dispatcher
 
@@ -70,37 +69,34 @@ type Config struct {
 
 // NewParser return the new Parser.
 func NewParser(path string, config *Config) *Parser {
-	root := config.Root
-	if root == "" {
+	if config.Root == "" {
 		proot, err := pathutil.FindProjectRoot(path)
 		if err != nil {
 			log.Fatal(err)
 		}
-		root = proot
+		config.Root = proot
 	}
 
-	cd := compilationdatabase.NewCompilationDatabase(root)
+	cd := compilationdatabase.NewCompilationDatabase(config.Root)
 	if err := cd.Parse(config.JSONName, config.PathRange); err != nil {
 		log.Fatal(err)
 	}
 
-	db, err := indexdb.NewIndexDB(root)
+	db, err := indexdb.NewIndexDB(config.Root)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	clangOption := config.ClangOption
-	if clangOption == 0 {
-		clangOption = defaultClangOption
+	if config.ClangOption == 0 {
+		config.ClangOption = defaultClangOption
 	}
 
 	p := &Parser{
-		root:        root,
-		clangOption: clangOption,
-		idx:         clang.NewIndex(0, 0), // disable excludeDeclarationsFromPCH, enable displayDiagnostics
-		cd:          cd,
-		db:          db,
-		server:      rpc.NewGRPCServer(),
+		idx:    clang.NewIndex(0, 0), // disable excludeDeclarationsFromPCH, enable displayDiagnostics
+		cd:     cd,
+		db:     db,
+		server: rpc.NewGRPCServer(),
+		config: config,
 	}
 	p.dispatcher = newDispatcher(p.ParseFile)
 
@@ -224,7 +220,7 @@ func (p *Parser) ParseFile(arg parseArg) error {
 		return nil
 	}
 
-	if cErr := p.idx.ParseTranslationUnit2(arg.filename, arg.flag, nil, p.clangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
+	if cErr := p.idx.ParseTranslationUnit2(arg.filename, arg.flag, nil, p.config.ClangOption, &tu); clang.ErrorCode(cErr) != clang.Error_Success {
 		return errors.New(clang.ErrorCode(cErr).Spelling())
 	}
 	defer tu.Dispose()
