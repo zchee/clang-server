@@ -712,8 +712,11 @@ func (c *CodeCompleteResults) Results() []CompleteItem {
 
 // Marshal returns the flatbuffers binary encoding of clang.CodeCompleteResults v.
 func (c *CodeCompleteResults) Marshal(v *clang.CodeCompleteResults) *flatbuffers.Builder {
-	builder := flatbuffers.NewBuilder(0)
+	if v == nil {
+		return nil
+	}
 
+	builder := flatbuffers.NewBuilder(0)
 	resultsNum := int(v.NumResults())
 	if resultsNum == 0 {
 		return builder
