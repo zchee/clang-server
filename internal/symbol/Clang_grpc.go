@@ -4,15 +4,17 @@
 
 package symbol
 
+import "github.com/google/flatbuffers/go"
+
 import (
-	flatbuffers "github.com/google/flatbuffers/go"
 	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 )
 
-// ClangClient API for Clang service
+// Client API for Clang service
 type ClangClient interface {
-	Completion(ctx context.Context, in *flatbuffers.Builder, opts ...grpc.CallOption) (*CodeCompleteResults, error)
+	Completion(ctx context.Context, in *flatbuffers.Builder,
+		opts ...grpc.CallOption) (*CodeCompleteResults, error)
 }
 
 type clangClient struct {
@@ -23,7 +25,8 @@ func NewClangClient(cc *grpc.ClientConn) ClangClient {
 	return &clangClient{cc}
 }
 
-func (c *clangClient) Completion(ctx context.Context, in *flatbuffers.Builder, opts ...grpc.CallOption) (*CodeCompleteResults, error) {
+func (c *clangClient) Completion(ctx context.Context, in *flatbuffers.Builder,
+	opts ...grpc.CallOption) (*CodeCompleteResults, error) {
 	out := new(CodeCompleteResults)
 	err := grpc.Invoke(ctx, "/symbol.Clang/Completion", in, out, c.cc, opts...)
 	if err != nil {
@@ -32,7 +35,7 @@ func (c *clangClient) Completion(ctx context.Context, in *flatbuffers.Builder, o
 	return out, nil
 }
 
-// ClangServer API for Clang service
+// Server API for Clang service
 type ClangServer interface {
 	Completion(context.Context, *Location) (*flatbuffers.Builder, error)
 }
@@ -41,7 +44,8 @@ func RegisterClangServer(s *grpc.Server, srv ClangServer) {
 	s.RegisterService(&_Clang_serviceDesc, srv)
 }
 
-func _Clang_Completion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Clang_Completion_Handler(srv interface{}, ctx context.Context,
+	dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Location)
 	if err := dec(in); err != nil {
 		return nil, err
@@ -53,6 +57,7 @@ func _Clang_Completion_Handler(srv interface{}, ctx context.Context, dec func(in
 		Server:     srv,
 		FullMethod: "/symbol.Clang/Completion",
 	}
+
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClangServer).Completion(ctx, req.(*Location))
 	}
