@@ -11,6 +11,7 @@ import (
 	"github.com/go-clang/v3.9/clang"
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/zchee/clang-server/indexdb"
+	"github.com/zchee/clang-server/internal/hashutil"
 	"github.com/zchee/clang-server/internal/log"
 	"github.com/zchee/clang-server/internal/pathutil"
 	"github.com/zchee/clang-server/symbol"
@@ -71,7 +72,8 @@ func (s *server) Completion(ctx context.Context, loc *symbol.SymbolLocation) (*f
 		s.db = db
 		defer db.Close()
 
-		buf, err := db.Get(f)
+		fhash := hashutil.NewHashString(f)
+		buf, err := db.Get(fhash[:])
 		if err != nil {
 			return nil, err
 		}
