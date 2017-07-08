@@ -11,7 +11,7 @@ import (
 	"github.com/zchee/clang-server/internal/pathutil"
 )
 
-// index filename of leveldb which indexed C/C++ symbols.
+// index directory name of leveldb which indexed C/C++ symbols.
 const index = "index.db"
 
 // IndexDB represets a C/C++ file database using leveldb.
