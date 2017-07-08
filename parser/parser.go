@@ -102,6 +102,7 @@ func NewParser(path string, config *Config) *Parser {
 		db:          db,
 		server:      rpc.NewGRPCServer(),
 	}
+	p.dispatcher = newDispatcher(p.ParseFile)
 
 	if config.Debug {
 		p.debugUncatched = true
@@ -185,7 +186,6 @@ func (p *Parser) Parse() {
 	builtinHdrDir := filepath.Join(pathutil.CacheDir(), "clang", "include")
 	flags = append(flags, "-I"+builtinHdrDir)
 
-	p.dispatcher = newDispatcher(p.ParseFile)
 	p.dispatcher.Start()
 	for i := 0; i < len(ccs); i++ {
 		args := ccs[i].Arguments
