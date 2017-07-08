@@ -25,13 +25,6 @@ func NewHashString(s string) [Size]byte {
 	return blake2b.Sum512(stringToByteSlice(s))
 }
 
-// Encode returns the hexadecimal encoded byte slice of blake2b hashed b.
-func Encode(b [Size]byte) []byte {
-	dst := make([]byte, hex.EncodedLen(len(b)))
-	hex.Encode(dst, b[:])
-	return dst
-}
-
 // EncodeToString returns the hexadecimal encoded string of blake2b hashed b.
 func EncodeToString(b [Size]byte) string {
 	return hex.EncodeToString(b[:])
