@@ -63,6 +63,7 @@ type Config struct {
 	JSONName    string
 	PathRange   []string
 	ClangOption uint32
+	Jobs        int
 
 	Debug bool
 }
@@ -149,6 +150,12 @@ func CreateBulitinHeaders() error {
 
 // Parse parses the project directories.
 func (p *Parser) Parse() {
+	if p.config.Jobs > 0 {
+		ncpu := runtime.NumCPU()
+		runtime.GOMAXPROCS(p.config.Jobs)
+		defer runtime.GOMAXPROCS(ncpu)
+	}
+
 	defer func() {
 		p.db.Close()
 		p.server.Serve()
