@@ -15,6 +15,7 @@ import (
 var (
 	root = flag.String("root", "", "parse project root directory.")
 	path = flag.String("path", "", "parse project's compilation_database.json directory.")
+	jobs = flag.Int("jobs", 0, "number of jobs")
 )
 
 func main() {
@@ -26,9 +27,9 @@ func main() {
 
 	fmt.Printf("clang version: %s\n", parser.ClangVersion())
 
-	config := new(parser.Config)
-	if *root != "" {
-		config.Root = *root
+	config := &parser.Config{
+		Root: *root,
+		Jobs: *jobs,
 	}
 	p := parser.NewParser(*path, config)
 	p.Parse()
