@@ -1,6 +1,7 @@
 # -----------------------------------------------------------------------------
 # Go project environment
 
+GOPATH ?= $(shell go env GOPATH)
 GO_SRCS = $(shell find . -type f -name '*.go' -and -not -iwholename '*vendor*' -and -not -iwholename '*testdata*')
 GO_PACKAGES = $(shell go list ./... | grep -v -e 'vendor' -e 'builtinheader' -e 'internal/symbol')
 GO_VENDOR_PACKAGES = $(shell go list ./vendor/...)
@@ -10,9 +11,9 @@ GO_BUILD_TAGS ?=
 GO_TEST_FLAGS := -v
 
 GO_GCFLAGS ?= 
-GO_LDFLAGS := -X "main.Revision=$(shell git rev-parse --short HEAD)"
+GO_LDFLAGS = -X "main.Revision=$(shell git rev-parse --short HEAD)"
 
-CGO_CFLAGS = -Wdeprecated-declarations
+CGO_CFLAGS = -Wno-deprecated-declarations
 CGO_LDFLAGS ?=
 CGO_CXXFLAGS ?=
 
@@ -50,12 +51,9 @@ else
 	# dynamic link build
 	CGO_LDFLAGS += -L$(LLVM_LIBDIR)
 
-	# link against LLVM's libc++ for only Darwin.
-	# avoid link the macOS system libc++ library.
-	# ifeq ($(UNAME),Darwin)
-	# 	CGO_CFLAGS += -Wl,-rpath,$(LLVM_LIBDIR)
-	# 	CGO_CXXFLAGS += -Wl,-rpath,$(LLVM_LIBDIR)
-	# endif
+	# link against LLVM libraries.
+	CGO_CFLAGS += -Wl,-rpath,$(LLVM_LIBDIR)
+	CGO_CXXFLAGS += -Wl,-rpath,$(LLVM_LIBDIR)
 endif
 
 CGO_FLAGS = CC="$(CC)" CXX="$(CXX)"
@@ -177,13 +175,6 @@ vendor/distclean:
 	${RM} -r ${GOPATH}/pkg/darwin_amd64/github.com/zchee/clang-server
 	${RM} -r ${GOPATH}/pkg/darwin_amd64-race/github.com/zchee/clang-server
 
-vendor/clean:
-	@rm -rf $(UNUSED)
-	@find vendor -type f -name '*_test.go' -print -exec rm -fr {} ";" || true
-	@find vendor \( -name 'testdata' -o -name 'cmd' -o -name 'examples' -o -name 'testutil' -o -name 'manualtest' \) -print | xargs rm -rf || true
-	@find vendor \( -name 'Makefile' -o -name 'Dockerfile' -o -name 'CHANGELOG*' -o -name '.travis.yml' -o -name 'circle.yml' -o -name '.appveyor.yml' -o -name 'appveyor.yml' -o -name 'test_coverage.txt' -o -name '*.json' -o -name '*.proto' -o -name '*.sh' -o -name '*.pl' -o -name 'codereview.cfg' -o -name '.github' -o -name '.gitignore' -o -name '.gitattributes' \) -print | xargs rm -rf || true
-
-
 fbs:
 	@${RM} -r ./internal/symbol
 	flatc --go --grpc $(shell find ./symbol -type f -name '*.fbs')
@@ -207,7 +198,7 @@ prof/trace:
 
 
 clean:
-	${RM} -r ./bin *.pprof
+	${RM} -r ./bin *.pprof *.out
 
 clean/cachedir:
 	${RM} -r $(XDG_CACHE_HOME)/clang-server
